@@ -160,10 +160,15 @@ function fillForm() {
   }
 }
 
+const dialog = $('#settings');
 $('#open-settings').addEventListener('click', () => {
   fillForm();
-  $('#settings').showModal();
+  dialog.showModal();
 });
+// Close on backdrop click. Track pointerdown too, so a text drag that ends outside doesn't close it.
+let downOnBackdrop = false;
+dialog.addEventListener('pointerdown', e => { downOnBackdrop = e.target === dialog; });
+dialog.addEventListener('click', e => { if (downOnBackdrop && e.target === dialog) dialog.close(); });
 form.addEventListener('input', e => {
   const el = e.target;
   if (!el.name || !el.checkValidity()) return;
@@ -215,7 +220,7 @@ onFile('#settings-file', text => {
 let todos = load('pomo.todos', []);
 if (!Array.isArray(todos)) todos = [];
 const list = $('#todo-list');
-const X_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+const X_ICON = '<svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
 
 // Item: { text, done } where done is null (open) or the completion note, e.g. "2026-10-16 14:32 · Work 3/4 · Cycle 2".
 function renderTodos() {
