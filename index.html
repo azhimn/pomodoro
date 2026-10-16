@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pomodoro</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" id="favicon" href="data:,">
 </head>
 <body>
   <!-- Icons: Phosphor (https://phosphoricons.com), MIT license -->
@@ -21,7 +22,7 @@
   </header>
 
   <main>
-    <div id="step-name">Work</div>
+    <div id="step-name">Focus</div>
     <div id="time" role="timer" aria-live="off">25:00</div>
     <div id="step">Pair 1/4 · Cycle 1</div>
     <nav class="controls">
@@ -68,8 +69,8 @@
         <h3 id="g-timer">Timer</h3>
         <div class="rows">
           <div class="row" role="group" aria-labelledby="r-len-work">
-            <span class="row-label" id="r-len-work">Work</span>
-            <div class="ctrl"><label class="unit"><input type="number" name="work.min" min="0" max="180" step="1" required aria-label="Work minutes"><span aria-hidden="true">min</span></label><label class="unit"><input type="number" name="work.sec" min="0" max="59" step="1" required aria-label="Work seconds"><span aria-hidden="true">sec</span></label></div>
+            <span class="row-label" id="r-len-work">Focus</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="work.min" min="0" max="180" step="1" required aria-label="Focus minutes"><span aria-hidden="true">min</span></label><label class="unit"><input type="number" name="work.sec" min="0" max="59" step="1" required aria-label="Focus seconds"><span aria-hidden="true">sec</span></label></div>
           </div>
           <div class="row" role="group" aria-labelledby="r-len-break">
             <span class="row-label" id="r-len-break">Break</span>
@@ -81,14 +82,14 @@
           </div>
           <div class="row" role="group" aria-labelledby="r-cycle">
             <span class="row-label" id="r-cycle">Pairs per cycle<span class="hint">Last break of each cycle is the long break</span></span>
-            <div class="ctrl"><label class="unit"><input type="number" name="cycle" min="1" max="12" step="1" required aria-label="Work/break pairs per cycle"><span aria-hidden="true">pairs</span></label></div>
+            <div class="ctrl"><label class="unit"><input type="number" name="cycle" min="1" max="12" step="1" required aria-label="Focus/break pairs per cycle"><span aria-hidden="true">pairs</span></label></div>
           </div>
           <div class="row">
             <label class="row-label" for="f-auto">Auto-start next step<span class="hint">Off: the next step waits for you to press play</span></label>
             <div class="ctrl"><input type="checkbox" class="switch" id="f-auto" name="autoStart"></div>
           </div>
           <div class="row">
-            <label class="row-label" for="f-daily">Start fresh each day<span class="hint">Back to Work, pair 1, cycle 1 on a new day</span></label>
+            <label class="row-label" for="f-daily">Start fresh each day<span class="hint">Back to Focus, pair 1, cycle 1 on a new day</span></label>
             <div class="ctrl"><input type="checkbox" class="switch" id="f-daily" name="dailyReset"></div>
           </div>
           <div class="row">
@@ -118,8 +119,8 @@
         <p class="sub" id="g-alarm">Alarm when a step ends</p>
         <div class="rows" aria-labelledby="g-alarm" role="group">
           <div class="row" role="group" aria-labelledby="r-hz-work">
-            <span class="row-label" id="r-hz-work">Work</span>
-            <div class="ctrl"><label class="unit"><input type="number" name="work.hz" min="100" max="4000" step="10" required aria-label="Work alarm pitch"><span aria-hidden="true">Hz</span></label></div>
+            <span class="row-label" id="r-hz-work">Focus</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="work.hz" min="100" max="4000" step="10" required aria-label="Focus alarm pitch"><span aria-hidden="true">Hz</span></label></div>
           </div>
           <div class="row" role="group" aria-labelledby="r-hz-break">
             <span class="row-label" id="r-hz-break">Break</span>
@@ -152,8 +153,8 @@
         <p class="sub" id="g-colors">Background colors</p>
         <div class="rows" aria-labelledby="g-colors" role="group">
           <div class="row" role="group" aria-labelledby="r-col-work">
-            <span class="row-label" id="r-col-work">Work</span>
-            <div class="ctrl"><input type="color" name="work.color" aria-label="Work background color"></div>
+            <span class="row-label" id="r-col-work">Focus</span>
+            <div class="ctrl"><input type="color" name="work.color" aria-label="Focus background color"></div>
           </div>
           <div class="row" role="group" aria-labelledby="r-col-break">
             <span class="row-label" id="r-col-break">Break</span>
@@ -240,7 +241,7 @@
         <h3 id="g-report">Personal report</h3>
         <div class="rows">
           <div class="row">
-            <label class="row-label" for="f-report">Keep a personal report<span class="hint">Streaks and focus time. Turning it off deletes the history.</span></label>
+            <label class="row-label" for="f-report">Keep a personal report<span class="hint">Streaks, focus time and tasks. Turning it off deletes the history.</span></label>
             <div class="ctrl"><input type="checkbox" class="switch" id="f-report" name="report" data-noimport></div>
           </div>
           <div class="row stack">
@@ -281,7 +282,8 @@
         <div class="rows">
           <div class="row"><span class="row-label">Focus</span><span class="val" id="r-today-work"></span></div>
           <div class="row"><span class="row-label">Breaks</span><span class="val" id="r-today-break"></span></div>
-          <div class="row"><span class="row-label">Pomodoros finished</span><span class="val" id="r-today-pomos"></span></div>
+          <div class="row"><span class="row-label">Pomodori finished</span><span class="val" id="r-today-pomos"></span></div>
+          <div class="row"><span class="row-label">Tasks completed</span><span class="val" id="r-today-tasks"></span></div>
         </div>
       </section>
 
@@ -298,8 +300,9 @@
         <div class="rows">
           <div class="row"><span class="row-label">Focus</span><span class="val" id="r-all-work"></span></div>
           <div class="row"><span class="row-label">Breaks</span><span class="val" id="r-all-break"></span></div>
-          <div class="row"><span class="row-label">Pomodoros finished</span><span class="val" id="r-all-pomos"></span></div>
+          <div class="row"><span class="row-label">Pomodori finished</span><span class="val" id="r-all-pomos"></span></div>
           <div class="row"><span class="row-label">Cycles finished</span><span class="val" id="r-all-cycles"></span></div>
+          <div class="row"><span class="row-label">Tasks completed</span><span class="val" id="r-all-tasks"></span></div>
           <div class="row"><span class="row-label">Longest streak</span><span class="val" id="r-best"></span></div>
           <div class="row"><span class="row-label">Days with a pomodoro</span><span class="val" id="r-days"></span></div>
         </div>

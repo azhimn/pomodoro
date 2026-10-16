@@ -20,12 +20,12 @@ body {
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
 html:hover::-webkit-scrollbar-thumb, #todo-list:hover::-webkit-scrollbar-thumb { background: color-mix(in oklab, currentColor 25%, transparent); }
-dialog:hover::-webkit-scrollbar-thumb { background: #d9cfc4; }
+.dialog-body:hover::-webkit-scrollbar-thumb { background: #d9cfc4; }
 /* Firefox only: in Chrome these standard properties replace ::-webkit-scrollbar and bring the arrows back. */
 @supports not selector(::-webkit-scrollbar) {
-  html, dialog, #todo-list { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  html, .dialog-body, #todo-list { scrollbar-width: thin; scrollbar-color: transparent transparent; }
   html:hover, #todo-list:hover { scrollbar-color: color-mix(in oklab, currentColor 25%, transparent) transparent; }
-  dialog:hover { scrollbar-color: #d9cfc4 transparent; }
+  .dialog-body:hover { scrollbar-color: #d9cfc4 transparent; }
 }
 
 ::selection { background: color-mix(in oklab, currentColor 25%, transparent); }
@@ -102,8 +102,7 @@ dialog {
   padding: 0;
   width: min(30rem, 94vw);
   max-height: min(48rem, 90vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden; /* only the body scrolls, so the scrollbar never meets the rounded corners */
   background: #f6f3ef;
   color: #34302c;
   box-shadow: 0 12px 40px rgb(30 20 10 / .18);
@@ -122,18 +121,18 @@ dialog[open]::backdrop { background: rgb(20 15 10 / .25); }
 @starting-style { dialog[open]::backdrop { background: rgb(20 15 10 / 0); } }
 dialog ::selection { background: #e2d9cf; }
 
-/* Head and foot stay pinned so Close and Done are always in reach while scrolling. */
-.dialog-head, .dialog-foot {
-  position: sticky; z-index: 1;
-  display: flex; align-items: center;
-  background: color-mix(in oklab, #f6f3ef 88%, transparent);
-  backdrop-filter: blur(8px);
-}
-.dialog-head { top: 0; justify-content: space-between; padding: 1rem 1rem .75rem 1.5rem; }
-.dialog-foot { bottom: 0; justify-content: flex-end; padding: .75rem 1.5rem 1rem; }
+/* Head and foot stay put; the body between them scrolls. */
+dialog[open]:not(.confirm-dialog), #settings > form { display: flex; flex-direction: column; min-height: 0; }
+#settings > form { flex: 1; }
+.dialog-head, .dialog-foot { flex: none; display: flex; align-items: center; }
+.dialog-head { justify-content: space-between; padding: 1rem 1rem .75rem 1.5rem; }
+.dialog-foot { justify-content: flex-end; padding: .75rem 1.5rem 1rem; }
 .dialog-head h2 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: -.01em; }
 .dialog-head svg { width: 1.15rem; height: 1.15rem; }
-.dialog-body { display: flex; flex-direction: column; gap: 1.75rem; padding: .25rem 1.5rem .5rem; }
+.dialog-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 1.75rem; padding: .25rem 1.5rem .5rem;
+}
 
 .group h3 { margin: 0 0 .6rem; font-size: .95rem; font-weight: 600; color: #3f3a35; }
 .group .sub { margin: .9rem 0 .4rem; font-size: .8rem; color: #6b635b; }

@@ -1,6 +1,7 @@
 'use strict';
 
-const STEPS = { work: 'Work', break: 'Break', long: 'Long break' };
+// Storage keys stay `work` for compatibility; the user-facing name is Focus.
+const STEPS = { work: 'Focus', break: 'Break', long: 'Long break' };
 const DEFAULTS = {
   cycle: 4,
   showTodos: false,
@@ -50,15 +51,35 @@ const durMs = kind => Math.max(1, settings[kind].min * 60 + settings[kind].sec) 
 const label = s => `${STEPS[s.kind]} ${s.pos}/${settings.cycle} · Cycle ${s.cycle}`;
 const remaining = () => state.endsAt ? state.endsAt - Date.now() : state.left ?? durMs(stepOf(state.idx).kind);
 
+function isLight(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  return r * 0.299 + g * 0.587 + b * 0.114 > 150;
+}
 // Light or dark text for the user's chosen color, tinted with that color so it sits softly on it.
 function textOn(hex) {
-  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
-  return r * 0.299 + g * 0.587 + b * 0.114 > 150
+  return isLight(hex)
     ? `color-mix(in oklab, ${hex} 25%, #1c1917)`
     : `color-mix(in oklab, ${hex} 12%, #fff)`;
 }
 
 const $ = sel => document.querySelector(sel);
+
+// Favicon: the current step's icon (Phosphor fill) on its background color. Rebuilt only when either changes.
+const STEP_ICONS = {
+  work: 'M212,76V72a44,44,0,0,0-74.86-31.31,3.93,3.93,0,0,0-1.14,2.8v88.72a4,4,0,0,0,6.2,3.33A47.67,47.67,0,0,1,167.68,128a8.18,8.18,0,0,1,8.31,7.58,8,8,0,0,1-8,8.42,32,32,0,0,0-32,32v33.88a4,4,0,0,0,1.49,3.12,47.92,47.92,0,0,0,74.21-17.16,4,4,0,0,0-4.49-5.56A68.06,68.06,0,0,1,192,192h-7.73a8.18,8.18,0,0,1-8.25-7.47,8,8,0,0,1,8-8.53h8a51.6,51.6,0,0,0,24-5.88v0A52,52,0,0,0,212,76Zm-12,36h-4a36,36,0,0,1-36-36V72a8,8,0,0,1,16,0v4a20,20,0,0,0,20,20h4a8,8,0,0,1,0,16ZM88,28A44.05,44.05,0,0,0,44,72v4a52,52,0,0,0-4,94.12h0A51.6,51.6,0,0,0,64,176h7.73A8.18,8.18,0,0,1,80,183.47,8,8,0,0,1,72,192H64a67.48,67.48,0,0,1-15.21-1.73,4,4,0,0,0-4.5,5.55A47.93,47.93,0,0,0,118.51,213a4,4,0,0,0,1.49-3.12V176a32,32,0,0,0-32-32,8,8,0,0,1-8-8.42A8.18,8.18,0,0,1,88.32,128a47.67,47.67,0,0,1,25.48,7.54,4,4,0,0,0,6.2-3.33V43.49a4,4,0,0,0-1.14-2.81A43.85,43.85,0,0,0,88,28Zm8,48a36,36,0,0,1-36,36H56a8,8,0,0,1,0-16h4A20,20,0,0,0,80,76V72a8,8,0,0,1,16,0Z',
+  break: 'M208,80H32a8,8,0,0,0-8,8v48a96.3,96.3,0,0,0,32.54,72H32a8,8,0,0,0,0,16H208a8,8,0,0,0,0-16H183.46a96.59,96.59,0,0,0,27-40.09A40,40,0,0,0,248,128v-8A40,40,0,0,0,208,80Zm24,48a24,24,0,0,1-17.2,23,95.78,95.78,0,0,0,1.2-15V97.38A24,24,0,0,1,232,120ZM112,56V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0Zm32,0V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0ZM80,56V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0Z',
+  long: 'M235.54,150.21a104.84,104.84,0,0,1-37,52.91A104,104,0,0,1,32,120,103.09,103.09,0,0,1,52.88,57.48a104.84,104.84,0,0,1,52.91-37,8,8,0,0,1,10,10,88.08,88.08,0,0,0,109.8,109.8,8,8,0,0,1,10,10Z',
+};
+let faviconKey;
+function favicon(kind) {
+  const bg = settings[kind].color; // #rrggbb: the color input (and settings import) only accept that shape
+  if (faviconKey === kind + bg) return;
+  faviconKey = kind + bg;
+  const fg = isLight(bg) ? '#1c1917' : '#fff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="60" fill="${bg}"/>` +
+    `<path transform="translate(36 36) scale(.72)" fill="${fg}" d="${STEP_ICONS[kind]}"/></svg>`;
+  $('#favicon').href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 function render() {
   const s = stepOf(state.idx);
@@ -69,6 +90,7 @@ function render() {
   $('#step-name').textContent = STEPS[s.kind];
   $('#step').textContent = `Pair ${s.pos}/${settings.cycle} · Cycle ${s.cycle}`;
   document.title = `${time} · ${STEPS[s.kind]}`;
+  favicon(s.kind);
   // Set on <html> so the page scrollbar can take its tint from currentColor too.
   const root = document.documentElement.style;
   root.backgroundColor = settings[s.kind].color;
@@ -128,17 +150,25 @@ function stopAlarm() {
   alarmBus = null;
 }
 
-// ---- Report data: { 'YYYY-MM-DD': { work, break, pomos, cycles } }, times in ms ----
+// ---- Report data: { 'YYYY-MM-DD': { work, break, pomos, cycles, tasks } }, times in ms ----
 let stats = load('pomo.stats', {});
 if (typeof stats !== 'object' || Array.isArray(stats) || !stats) stats = {};
-const STAT_KEYS = ['work', 'break', 'pomos', 'cycles'];
+const STAT_KEYS = ['work', 'break', 'pomos', 'cycles', 'tasks'];
+const statDay = key => stats[key] ??= { work: 0, break: 0, pomos: 0, cycles: 0, tasks: 0 };
 // shortcut: a stretch that crosses midnight is credited to the day it ended; split it if per-day accuracy matters.
 function credit(kind, ms, end, finished) {
   if (!settings.report || !(ms > 0)) return;
-  const d = stats[dayKey(end)] ??= { work: 0, break: 0, pomos: 0, cycles: 0 };
+  const d = statDay(dayKey(end));
   d[kind === 'work' ? 'work' : 'break'] += Math.min(ms, durMs(kind));
   if (finished && kind === 'work') d.pomos++;
   if (finished && kind === 'long') d.cycles++;
+  save('pomo.stats', stats);
+}
+// A task checked off counts on its completion day; unchecking takes it back from that same day.
+function countTask(day, delta) {
+  if (!settings.report || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+  const d = statDay(day);
+  d.tasks = Math.max(0, (d.tasks || 0) + delta);
   save('pomo.stats', stats);
 }
 // Credit the running stretch so far (pause, skip).
@@ -346,7 +376,7 @@ if (!Array.isArray(todos)) todos = [];
 const list = $('#todo-list');
 const X_ICON = '<svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
 
-// Item: { text, done } where done is null (open) or the completion note, e.g. "2026-10-16 14:32 · Work 3/4 · Cycle 2".
+// Item: { text, done } where done is null (open) or the completion note, e.g. "2026-10-16 14:32 · Focus 3/4 · Cycle 2".
 // Each <li> keeps a reference to its item, so single adds/edits/deletes can animate without re-rendering the list.
 function todoEl(t, animate) {
   const li = document.createElement('li');
@@ -399,6 +429,7 @@ list.addEventListener('change', e => {
   const li = e.target.closest('li');
   // sv-SE locale formats as "YYYY-MM-DD HH:MM:SS" in local time.
   const stamp = new Date().toLocaleString('sv-SE').slice(0, 16);
+  countTask(e.target.checked ? stamp.slice(0, 10) : String(li.todo.done ?? '').slice(0, 10), e.target.checked ? 1 : -1);
   li.todo.done = e.target.checked ? `${stamp} · ${label(stepOf(state.idx))}` : null;
   saveTodos();
   // Keep the old stamp text while it collapses; only write it when showing.
@@ -471,7 +502,7 @@ function streaks(data, today = dayKey()) {
 }
 
 function renderReport() {
-  const today = dayKey(), t = stats[today] ?? { work: 0, break: 0, pomos: 0 };
+  const today = dayKey(), t = stats[today] ?? {};
   const sum = k => Object.values(stats).reduce((a, d) => a + (d[k] || 0), 0);
   const { current, best } = streaks(stats, today);
   $('#r-streak').textContent = current;
@@ -479,13 +510,15 @@ function renderReport() {
     current === 0 ? 'Finish a pomodoro today to start a streak.'
     : !(t.pomos > 0) ? 'Finish a pomodoro today to keep it going.'
     : current >= best && current > 1 ? 'Your longest yet.' : `Best so far: ${plural(best, 'day')}.`;
-  $('#r-today-work').textContent = fmtDur(t.work);
-  $('#r-today-break').textContent = fmtDur(t.break);
-  $('#r-today-pomos').textContent = t.pomos;
+  $('#r-today-work').textContent = fmtDur(t.work || 0);
+  $('#r-today-break').textContent = fmtDur(t.break || 0);
+  $('#r-today-pomos').textContent = t.pomos || 0;
+  $('#r-today-tasks').textContent = t.tasks || 0;
   $('#r-all-work').textContent = fmtDur(sum('work'));
   $('#r-all-break').textContent = fmtDur(sum('break'));
   $('#r-all-pomos').textContent = sum('pomos');
   $('#r-all-cycles').textContent = sum('cycles');
+  $('#r-all-tasks').textContent = sum('tasks');
   $('#r-best').textContent = plural(best, 'day');
   $('#r-days').textContent = Object.values(stats).filter(d => d.pomos > 0).length;
 
@@ -532,10 +565,10 @@ function mergeReport(obj) {
   let n = 0;
   for (const [key, d] of Object.entries(days)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || typeof d !== 'object' || !d) continue;
-    const cur = stats[key] ??= { work: 0, break: 0, pomos: 0, cycles: 0 };
+    const cur = statDay(key);
     for (const k of STAT_KEYS) {
       const v = d[k];
-      if (Number.isFinite(v) && v >= 0 && v < 864e5 * 400) cur[k] = Math.max(cur[k], k === 'pomos' || k === 'cycles' ? Math.floor(v) : v);
+      if (Number.isFinite(v) && v >= 0 && v < 864e5 * 400) cur[k] = Math.max(cur[k] || 0, k === 'work' || k === 'break' ? v : Math.floor(v));
     }
     n++;
   }
@@ -583,7 +616,7 @@ function selfTest() {
   console.assert(streaks(st, '2026-10-17').current === 0, 'streak broken after a missed day');
   console.assert(shiftDay('2026-03-01', -1) === '2026-02-28' && shiftDay('2026-12-31', 1) === '2027-01-01', 'shiftDay');
   console.assert(fmtDur(90 * 60000) === '1 h 30 min' && fmtDur(60 * 60000) === '1 h' && fmtDur(0) === '0 min', 'fmtDur');
-  const sample = [{ text: 'a — b', done: null }, { text: 'Write — report', done: '2026-10-16 14:32 · Work 3/4 · Cycle 2' }];
+  const sample = [{ text: 'a — b', done: null }, { text: 'Write — report', done: '2026-10-16 14:32 · Focus 3/4 · Cycle 2' }];
   console.assert(JSON.stringify(fromMarkdown(toMarkdown(sample))) === JSON.stringify(sample), 'markdown round-trip');
 }
 selfTest();
