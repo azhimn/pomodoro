@@ -7,12 +7,7 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
+body { margin: 0; }
 
 /* Scrollbars: 4px, no arrow buttons, thumb only while hovering the scroll area. */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -30,15 +25,16 @@ html:hover::-webkit-scrollbar-thumb, #todo-list:hover::-webkit-scrollbar-thumb {
 
 ::selection { background: color-mix(in oklab, currentColor 25%, transparent); }
 
-header { display: flex; justify-content: flex-end; gap: .25rem; padding: 1rem; }
+/* Header floats over the page so the timer centers on the whole screen, not the space below the header. */
+header { position: fixed; top: 0; right: 0; z-index: 1; display: flex; gap: .25rem; padding: 1rem; }
 
 main {
-  flex: 1;
+  min-height: 100vh; min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 4.5rem 1rem; /* equal top and bottom, clear of the header */
 }
 
 #time {
@@ -139,13 +135,14 @@ dialog[open]:not(.confirm-dialog), #settings > form { display: flex; flex-direct
 .group h3 + .sub { margin-top: 0; }
 .rows { background: #ece7e1; border-radius: .9rem; }
 .row {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem;
   min-height: 3rem; padding: .45rem .5rem .45rem .9rem;
 }
 .row + .row { box-shadow: inset 0 1px #e1d9d0; } /* hairline divider without a border box */
-.row-label { display: flex; flex-direction: column; gap: .1rem; font-size: .9rem; color: #3f3a35; }
+/* When label and controls don't fit side by side (narrow phones, large text), the controls wrap under the label, right-aligned. */
+.row-label { flex: 1 1 5rem; min-width: 0; display: flex; flex-direction: column; gap: .1rem; font-size: .9rem; color: #3f3a35; overflow-wrap: anywhere; }
 .hint { font-size: .75rem; color: #6b635b; }
-.ctrl { display: flex; align-items: center; gap: .4rem; flex: none; }
+.ctrl { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .4rem; flex: 0 1 auto; max-width: 100%; margin-left: auto; }
 .unit { display: flex; align-items: center; gap: .3rem; font-size: .8rem; color: #6b635b; }
 
 dialog input, dialog select {
@@ -157,7 +154,9 @@ dialog input, dialog select {
 }
 dialog input[type=number] { width: 4.25rem; text-align: right; font-variant-numeric: tabular-nums; }
 .unit:has([name$=".hz"], [name^="sound."]) input { width: 5rem; }
-#f-custom, #f-preset { width: 11rem; }
+/* min / sec / pairs hold at most 3 digits */
+dialog input[name$=".min"], dialog input[name$=".sec"], dialog input[name="cycle"] { width: 3.6rem; }
+#f-custom, #f-preset { width: 11rem; max-width: 100%; }
 #f-weight { width: 9rem; }
 dialog input::placeholder { color: #6f665d; }
 dialog input:hover, dialog select:hover { background-color: #fdfcfa; }
@@ -197,10 +196,11 @@ button.armed, dialog .ctrl button.armed { background: #a4503f; color: #fff8f4; }
 button.armed:hover, dialog .ctrl button.armed:hover { background: #944635; }
 
 /* Volume sliders: soft track with a filled part (--fill, set from JS) and a white knob. */
-.ctrl.range { gap: .6rem; }
+.ctrl.range { gap: .6rem; flex-wrap: nowrap; flex: 1 1 11rem; }
+.ctrl.range output { flex: none; }
 .ctrl.range output { width: 2.6rem; text-align: right; font-size: .85rem; color: #5a534c; font-variant-numeric: tabular-nums; }
 dialog input[type=range] {
-  appearance: none; width: 9rem; height: 1.5rem; padding: 0; cursor: pointer;
+  appearance: none; width: 9rem; min-width: 0; flex: 1 1 6rem; height: 1.5rem; padding: 0; cursor: pointer;
   background: transparent; --fill: 50%;
 }
 dialog input[type=range]:hover, dialog input[type=range]:focus { background: transparent; }
@@ -224,7 +224,7 @@ dialog .close { background: #34302c; color: #f6f3ef; border: none; padding: .5re
 dialog .close:hover { background: #4a443e; }
 
 /* Keyboard shortcut list */
-.keys { display: flex; gap: .3rem; padding-right: .4rem; }
+.keys { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; padding-right: .4rem; margin-left: auto; }
 kbd {
   min-width: 1.7rem; padding: .15rem .45rem; text-align: center;
   font: 500 .8rem/1.4 system-ui, sans-serif; color: #4a443e;
@@ -280,6 +280,10 @@ kbd {
 
 /* Narrow screens: long labels and button pairs drop under their label instead of squeezing. */
 @media (max-width: 26rem) {
+  dialog { width: 96vw; }
+  .dialog-body { padding-inline: 1rem; }
+  .dialog-head { padding-left: 1rem; }
+  .dialog-foot { padding-inline: 1rem; }
   .confirm-actions { flex-wrap: wrap; }
   .confirm-actions .spacer { display: none; }
   .confirm-actions button { flex: 1 1 auto; justify-content: center; }

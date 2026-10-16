@@ -2,6 +2,14 @@
 
 A pomodoro timer that runs entirely in your browser. It has no ads and needs no account. Settings, tasks and history are saved in the browser's `localStorage` and never sent anywhere.
 
+![The timer during a focus step, with the task list open](docs/desktop.jpg)
+
+<p align="center">
+  <img src="docs/phone-timer.jpg" width="31%" alt="Break step on a phone">
+  <img src="docs/phone-report.jpg" width="31%" alt="Personal report with a 7-day streak and focus chart">
+  <img src="docs/phone-settings.jpg" width="31%" alt="Settings panel">
+</p>
+
 ## Features
 
 ### Timer
