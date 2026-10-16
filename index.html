@@ -4,6 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pomodoro</title>
+  <!-- Paint the last-used step color before anything renders, so the page never flashes white. -->
+  <script>
+    try {
+      const p = JSON.parse(localStorage.getItem('pomo.paint'));
+      document.documentElement.style.backgroundColor = p.bg;
+      document.documentElement.style.color = p.fg;
+    } catch {}
+  </script>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" id="favicon" href="data:,">
 </head>

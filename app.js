@@ -85,6 +85,7 @@ function favicon(kind) {
   $('#favicon').href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+let paintKey; // last color written to pomo.paint, so render() (4×/s) writes only on change
 function render() {
   const s = stepOf(state.idx);
   const secs = Math.ceil(Math.max(0, remaining()) / 1000);
@@ -97,8 +98,13 @@ function render() {
   favicon(s.kind);
   // Set on <html> so the page scrollbar can take its tint from currentColor too.
   const root = document.documentElement.style;
-  root.backgroundColor = settings[s.kind].color;
-  root.color = textOn(settings[s.kind].color);
+  const bg = settings[s.kind].color, fg = textOn(bg);
+  if (paintKey !== bg) {
+    paintKey = bg;
+    try { localStorage.setItem('pomo.paint', JSON.stringify({ bg, fg })); } catch {} // read by the inline script in <head>
+  }
+  root.backgroundColor = bg;
+  root.color = fg;
   root.fontFamily = settings.fontCustom || settings.font;
   const t = $('#time').style;
   t.fontWeight = settings.timer.weight;
