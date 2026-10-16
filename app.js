@@ -4,9 +4,12 @@ const STEPS = { work: 'Work', break: 'Break', long: 'Long break' };
 const DEFAULTS = {
   cycle: 4,
   showTodos: false,
-  work: { min: 25, color: '#c0392b', hz: 880 },
-  break: { min: 5, color: '#27ae60', hz: 660 },
-  long: { min: 20, color: '#2c3e8f', hz: 520 },
+  font: 'system-ui, sans-serif',
+  fontCustom: '',
+  sound: { resume: 1200, pause: 1000, skip: 800 },
+  work: { min: 25, color: '#a65d4e', hz: 880 },
+  break: { min: 5, color: '#47705a', hz: 660 },
+  long: { min: 20, color: '#4f6488', hz: 520 },
 };
 
 function load(key, fallback) {
@@ -16,10 +19,10 @@ function save(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { alert('Could not save: browser storage is full or disabled.'); }
 }
 
-// Merge per step so settings saved by an older version still get new default keys.
+// Merge nested groups too, so settings saved by an older version still get new default keys.
 const saved = load('pomo.settings', {});
 const settings = { ...DEFAULTS, ...saved };
-for (const k in STEPS) settings[k] = { ...DEFAULTS[k], ...saved[k] };
+for (const k in DEFAULTS) if (typeof DEFAULTS[k] === 'object') settings[k] = { ...DEFAULTS[k], ...saved[k] };
 
 // endsAt set = running. left = ms remaining while paused; null = step untouched (full length).
 const state = { idx: 0, endsAt: null, left: null, ...load('pomo.state', {}) };
@@ -37,10 +40,12 @@ const durMs = kind => settings[kind].min * 60000;
 const label = s => `${STEPS[s.kind]} ${s.pos}/${settings.cycle} · Cycle ${s.cycle}`;
 const remaining = () => state.endsAt ? state.endsAt - Date.now() : state.left ?? durMs(stepOf(state.idx).kind);
 
-// Pick black or white text for readability on the user's chosen color.
+// Light or dark text for the user's chosen color, tinted with that color so it sits softly on it.
 function textOn(hex) {
   const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
-  return r * 0.299 + g * 0.587 + b * 0.114 > 150 ? '#111' : '#fff';
+  return r * 0.299 + g * 0.587 + b * 0.114 > 150
+    ? `color-mix(in oklab, ${hex} 25%, #1c1917)`
+    : `color-mix(in oklab, ${hex} 12%, #fff)`;
 }
 
 const $ = sel => document.querySelector(sel);
@@ -55,9 +60,9 @@ function render() {
   document.title = `${time} · ${STEPS[s.kind]}`;
   document.body.style.backgroundColor = settings[s.kind].color;
   document.body.style.color = textOn(settings[s.kind].color);
-  $('#toggle .i-play').hidden = running;
-  $('#toggle .i-pause').hidden = !running;
-  $('#toggle').ariaLabel = running ? 'Pause' : 'Start';
+  document.body.style.fontFamily = settings.fontCustom || settings.font;
+  $('#toggle').classList.toggle('running', running);
+  $('#toggle').ariaLabel = running ? 'Pause' : 'Continue';
 }
 
 function setState(patch) {
@@ -106,12 +111,12 @@ function stopAlarm() {
 
 // ---- Actions ----
 function toggle() {
-  click(1200);
+  click(state.endsAt ? settings.sound.pause : settings.sound.resume);
   if (state.endsAt) setState({ endsAt: null, left: remaining() });
   else setState({ endsAt: Date.now() + remaining(), left: null });
 }
 function jump(delta) {
-  click(900);
+  click(settings.sound.skip);
   const idx = Math.max(0, state.idx + delta);
   setState({ idx, endsAt: state.endsAt && Date.now() + durMs(stepOf(idx).kind), left: null });
 }
@@ -143,19 +148,65 @@ form.querySelector('label').insertAdjacentHTML('beforebegin', Object.entries(STE
     <label>Pitch (Hz) <input type="number" name="${k}.hz" min="100" max="4000" step="10" required></label>
   </fieldset>`).join(''));
 
-$('#open-settings').addEventListener('click', () => {
-  for (const el of form.querySelectorAll('input[name]')) {
+const fields = () => form.querySelectorAll('[name]');
+function setField(el, v) {
+  const [k, f] = el.name.split('.');
+  if (f) settings[k][f] = v; else settings[k] = v;
+}
+function fillForm() {
+  for (const el of fields()) {
     const [k, f] = el.name.split('.');
     el.value = f ? settings[k][f] : settings[k];
   }
+}
+
+$('#open-settings').addEventListener('click', () => {
+  fillForm();
   $('#settings').showModal();
 });
 form.addEventListener('input', e => {
   const el = e.target;
   if (!el.name || !el.checkValidity()) return;
-  const [k, f] = el.name.split('.');
-  const v = el.type === 'color' ? el.value : Number(el.value);
-  if (f) settings[k][f] = v; else settings[k] = v;
+  setField(el, el.type === 'number' ? Number(el.value) : el.value);
+  save('pomo.settings', settings);
+  render();
+});
+
+function download(name, type, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+// Read a picked file, then clear the input so picking the same file again still fires.
+const onFile = (sel, handle) => $(sel).addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) handle(await file.text());
+});
+
+$('#settings-export').addEventListener('click', () => download('pomodoro-settings.json', 'application/json', JSON.stringify(settings, null, 2)));
+$('#settings-import').addEventListener('click', () => $('#settings-file').click());
+// Imported files are untrusted: each value goes through its form field and is kept only if the field accepts it as-is.
+function importSettings(obj) {
+  let applied = 0;
+  for (const el of fields()) {
+    const [k, f] = el.name.split('.');
+    const v = f ? obj?.[k]?.[f] : obj?.[k];
+    if (v == null || typeof v === 'object') continue;
+    el.value = String(v);
+    if (!el.checkValidity() || el.value.toLowerCase() !== String(v).toLowerCase()) continue;
+    setField(el, el.type === 'number' ? Number(el.value) : el.value);
+    applied++;
+  }
+  fillForm(); // rejected values show the current setting again
+  return applied;
+}
+onFile('#settings-file', text => {
+  let obj;
+  try { obj = JSON.parse(text); } catch { return alert('That file is not valid JSON.'); }
+  if (!importSettings(obj)) return alert('No usable settings found in that file.');
   save('pomo.settings', settings);
   render();
 });
@@ -223,19 +274,10 @@ function fromMarkdown(md) {
   return items;
 }
 
-$('#todo-export').addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([toMarkdown(todos)], { type: 'text/markdown' }));
-  a.download = 'todos.md';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-});
+$('#todo-export').addEventListener('click', () => download('todos.md', 'text/markdown', toMarkdown(todos)));
 $('#todo-import').addEventListener('click', () => $('#todo-file').click());
-$('#todo-file').addEventListener('change', async e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  const items = fromMarkdown(await file.text());
+onFile('#todo-file', text => {
+  const items = fromMarkdown(text);
   if (!items.length) return alert('No "- [ ] task" lines found in that file.');
   todos.push(...items); // append, never overwrite
   saveTodos();
@@ -247,7 +289,7 @@ function selfTest() {
   console.assert(seq === 'wbwbwbwlwb', 'sequence', seq);
   console.assert(stepOf(7, 4).pos === 4 && stepOf(8, 4).cycle === 2, 'pos/cycle');
   console.assert(stepOf(1, 1).kind === 'long' && stepOf(2, 1).cycle === 2, 'cycle of 1');
-  console.assert(textOn('#ffffff') === '#111' && textOn('#000000') === '#fff', 'textOn');
+  console.assert(textOn('#ffffff').includes('#1c1917') && textOn('#000000').includes('#fff)'), 'textOn');
   const sample = [{ text: 'a — b', done: null }, { text: 'Write — report', done: '2026-10-16 14:32 · Work 3/4 · Cycle 2' }];
   console.assert(JSON.stringify(fromMarkdown(toMarkdown(sample))) === JSON.stringify(sample), 'markdown round-trip');
 }

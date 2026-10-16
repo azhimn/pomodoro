@@ -15,7 +15,7 @@ For nginx/Caddy, point the web root at this folder. Opening `index.html` directl
 ## Use
 
 - Space: pause/continue. Left/Right arrows: previous/next step.
-- Gear icon: durations, colors, alarm pitch per step, and pairs per cycle.
-- Checklist icon: show/hide the to-do list. Export/import uses Markdown checklists (`- [x] task — 2026-10-16 14:32 · Work 3/4 · Cycle 2`). Import appends and never overwrites.
+- Gear icon: durations, colors, alarm pitch per step, pairs per cycle, button sounds, font, and export/import of tasks (.md) and settings (.json).
+- Checklist icon: show/hide the to-do list. Task export/import uses Markdown checklists (`- [x] task — 2026-10-16 14:32 · Work 3/4 · Cycle 2`). Import appends and never overwrites.
 
-Behavior spec: [SPEC.md](SPEC.md). Icons: [Lucide](https://lucide.dev) (ISC).
+Icons: [Lucide](https://lucide.dev) (ISC).

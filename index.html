@@ -24,9 +24,9 @@
       <button id="prev" class="icon" aria-label="Previous step">
         <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></svg>
       </button>
-      <button id="toggle" class="icon big" aria-label="Start">
+      <button id="toggle" class="icon" aria-label="Start">
         <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
       </button>
       <button id="next" class="icon" aria-label="Next step">
         <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>
@@ -36,17 +36,6 @@
     <section id="todos" hidden aria-label="To-do list">
       <form id="todo-add"><input name="text" placeholder="Add a task" maxlength="200" required aria-label="New task" autocomplete="off"></form>
       <ul id="todo-list"></ul>
-      <div class="todo-actions">
-        <button id="todo-export">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-          Export .md
-        </button>
-        <button id="todo-import">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-          Import .md
-        </button>
-        <input id="todo-file" type="file" accept=".md,text/markdown,text/plain" hidden>
-      </div>
     </section>
   </main>
 
@@ -54,6 +43,43 @@
     <form method="dialog">
       <h2 id="settings-title">Settings</h2>
       <label>Work/break pairs per cycle <input type="number" name="cycle" min="1" max="12" step="1" required></label>
+      <fieldset><legend>Button sounds (Hz)</legend>
+        <label>Continue <input type="number" name="sound.resume" min="100" max="4000" step="10" required></label>
+        <label>Pause <input type="number" name="sound.pause" min="100" max="4000" step="10" required></label>
+        <label>Prev / next <input type="number" name="sound.skip" min="100" max="4000" step="10" required></label>
+      </fieldset>
+      <fieldset class="wide"><legend>Font</legend>
+        <label>Preset
+          <select name="font">
+            <option value="system-ui, sans-serif">System</option>
+            <option value="ui-rounded, 'SF Pro Rounded', 'Nunito', 'Quicksand', system-ui, sans-serif">Rounded</option>
+            <option value="'Seravek', 'Gill Sans', 'Ubuntu', 'Segoe UI', 'Noto Sans', sans-serif">Humanist</option>
+            <option value="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">Serif</option>
+            <option value="ui-monospace, 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace">Monospace</option>
+          </select>
+        </label>
+        <label>Or any installed font <input name="fontCustom" maxlength="100" placeholder="e.g. Inter" autocomplete="off"></label>
+      </fieldset>
+      <fieldset class="wide data"><legend>Data</legend>
+        <button type="button" id="todo-export">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Export tasks (.md)
+        </button>
+        <button type="button" id="todo-import">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          Import tasks (.md)
+        </button>
+        <button type="button" id="settings-export">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Export settings (.json)
+        </button>
+        <button type="button" id="settings-import">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          Import settings (.json)
+        </button>
+        <input id="todo-file" type="file" accept=".md,text/markdown,text/plain" hidden>
+        <input id="settings-file" type="file" accept=".json,application/json" hidden>
+      </fieldset>
       <button class="close">Done</button>
     </form>
   </dialog>
