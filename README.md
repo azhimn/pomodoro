@@ -1,24 +1,53 @@
 # Pomodoro
 
-Offline pomodoro timer. Three static files, no build, no dependencies. Nothing leaves your browser; everything is saved in `localStorage`.
+A pomodoro timer that runs entirely in your browser. It has no ads and needs no account. Settings, tasks and history are saved in the browser's `localStorage` and never sent anywhere.
 
-Source: https://github.com/azhimn/pomodoro
+## Features
 
-## Run / self-host
+### Timer
 
-Serve this folder with any static web server:
+By default you focus for 25 minutes, then take a 5-minute break. Every 4th break is a 20-minute long break. You can change every length down to the second, and the number of pairs per cycle.
+
+The page and the tab icon take the color of the current step. When a step ends you hear a digital-alarm beep, pitched differently for each step. You can also get a browser notification when the tab is in the background.
+
+The next step waits until you press play, unless you turn on auto-start. Each new day starts again from the first focus step.
+
+### Tasks
+
+You can keep a to-do list under the timer and hide it when you don't need it. A checked-off task records the time and the step you finished it in. The list exports and imports as a Markdown checklist.
+
+### Personal report
+
+The report shows your streak, focus and break time, pomodori finished and tasks done for today, the last 7 days and all time. You can export, import or delete it, or turn it off.
+
+### Settings
+
+You can change colors, the font, the timer's weight and style, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser.
+
+## Keyboard
+
+| Key | Action |
+|---|---|
+| Space, K or S | Pause / continue |
+| ←, J or A | Previous step |
+| →, L or D | Next step |
+| T | Show or hide tasks |
+| I | Settings |
+| R | Report |
+| ? | List of shortcuts |
+
+## Run it yourself
+
+The app is three static files with no build step. Serve the folder with any web server:
 
 ```sh
-python -m http.server 8080     # then open http://localhost:8080
+python -m http.server 8080    # then open http://localhost:8080
 ```
 
-For nginx/Caddy, point the web root at this folder. Opening `index.html` directly from disk also works.
+With nginx or Caddy, point the web root at this folder. Opening `index.html` straight from disk also works, but browsers only allow notifications on `https://` or `localhost`.
 
-## Use
+## License
 
-- Space: pause/continue. Left/Right arrows: previous/next step.
-- Gear icon: durations, auto-start, colors, timer text style, font, volumes, alarm and click pitches, export/import of tasks (.md) and settings (.json), and reset to defaults.
-- Chart icon: your personal report (streak, focus and break time, pomodori, tasks, last 7 days). It can be exported, imported or turned off in Settings.
-- Checklist icon: show/hide the to-do list. The ⋯ menu beside it deletes completed, incomplete or all tasks. Task export/import uses Markdown checklists (`- [x] task — 2026-10-16 14:32 · Focus 3/4 · Cycle 2`). Import appends and never overwrites.
+MIT, see [LICENSE](LICENSE). You're free to change it, host your own copy or build something else from it. Keep the license notice when you share it. The icons are from [Phosphor](https://phosphoricons.com), also MIT.
 
-Icons: [Phosphor](https://phosphoricons.com) (MIT).
+The app is provided as is, without warranty. Your data lives only in your browser, so clearing site data deletes it. Export anything you want to keep.

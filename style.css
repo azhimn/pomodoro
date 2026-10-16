@@ -223,6 +223,15 @@ dialog input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px
 dialog .close { background: #34302c; color: #f6f3ef; border: none; padding: .5rem 1.4rem; }
 dialog .close:hover { background: #4a443e; }
 
+/* Keyboard shortcut list */
+.keys { display: flex; gap: .3rem; padding-right: .4rem; }
+kbd {
+  min-width: 1.7rem; padding: .15rem .45rem; text-align: center;
+  font: 500 .8rem/1.4 system-ui, sans-serif; color: #4a443e;
+  background: #f8f5f1; border-radius: .4rem; box-shadow: inset 0 -1px #ddd4ca;
+}
+#g-keys { scroll-margin-top: .5rem; }
+
 /* Settings: privacy note and source link. */
 .about p { margin: 0 0 .75rem; font-size: .85rem; line-height: 1.55; color: #4a443e; max-width: 60ch; }
 .about a {

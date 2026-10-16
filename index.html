@@ -251,8 +251,26 @@
               <button type="button" id="report-import"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg> Import</button>
             </div>
           </div>
+          <div class="row stack">
+            <span class="row-label">Delete report data<span class="hint">Clears all history, keeps the report on. Press twice to confirm.</span></span>
+            <div class="ctrl"><button type="button" id="report-delete">Delete</button></div>
+          </div>
         </div>
         <input id="report-file" type="file" accept=".json,application/json" hidden>
+      </section>
+
+      <section class="group" aria-labelledby="g-keys">
+        <h3 id="g-keys">Keyboard</h3>
+        <div class="rows">
+          <div class="row"><span class="row-label">Pause / continue</span><span class="keys"><kbd>Space</kbd><kbd>K</kbd><kbd>S</kbd></span></div>
+          <div class="row"><span class="row-label">Previous step</span><span class="keys"><kbd>←</kbd><kbd>J</kbd><kbd>A</kbd></span></div>
+          <div class="row"><span class="row-label">Next step</span><span class="keys"><kbd>→</kbd><kbd>L</kbd><kbd>D</kbd></span></div>
+          <div class="row"><span class="row-label">Show / hide tasks (focuses the task box)</span><span class="keys"><kbd>T</kbd></span></div>
+          <div class="row"><span class="row-label">Leave the task box, close a panel or menu</span><span class="keys"><kbd>Esc</kbd></span></div>
+          <div class="row"><span class="row-label">Open / close settings</span><span class="keys"><kbd>I</kbd></span></div>
+          <div class="row"><span class="row-label">Open / close your report</span><span class="keys"><kbd>R</kbd></span></div>
+          <div class="row"><span class="row-label">Show these shortcuts</span><span class="keys"><kbd>?</kbd></span></div>
+        </div>
       </section>
 
       <section class="group about" aria-labelledby="g-about">

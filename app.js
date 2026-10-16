@@ -13,7 +13,8 @@ const DEFAULTS = {
   font: 'system-ui, sans-serif',
   fontCustom: '',
   sound: { resume: 600, pause: 500, skip: 400 },
-  volume: { master: 80, alarm: 100, button: 100 }, // percent
+  volume: { master: 80, alarm: 100, button: 50 }, // percent
+  ver: 2,
   work: { min: 25, sec: 0, color: '#a65d4e', hz: 880 },
   break: { min: 5, sec: 0, color: '#47705a', hz: 660 },
   long: { min: 20, sec: 0, color: '#4f6488', hz: 520 },
@@ -30,6 +31,9 @@ function save(key, value) {
 const saved = load('pomo.settings', {});
 const settings = { ...DEFAULTS, ...saved };
 for (const k in DEFAULTS) if (typeof DEFAULTS[k] === 'object') settings[k] = { ...DEFAULTS[k], ...saved[k] };
+// v2 raised the click ceiling to alarm loudness; scale older saved click volumes so they sound the same as before.
+if (saved.volume && saved.ver !== 2) settings.volume.button = Math.round(settings.volume.button * 0.49 / 5) * 5;
+settings.ver = 2;
 
 // endsAt set = running. left = ms remaining while paused; null = step untouched (full length).
 // runFrom = when the current running stretch began (for the report). day = local date the timer last moved.
@@ -134,7 +138,8 @@ function beep(dest, hz, at, len, type, vol) {
 const gainFor = kind => (settings.volume.master / 100) ** 2 * (settings.volume[kind] / 100) ** 2;
 function click(hz) {
   audio();
-  beep(ctx.destination, hz, ctx.currentTime, 0.04, 'sine', 0.05 * gainFor('button'));
+  // 0.21 ≈ 0.15 × √2: a sine at this peak matches the square-wave alarm's loudness (RMS) at 100 %.
+  beep(ctx.destination, hz, ctx.currentTime, 0.04, 'sine', 0.21 * gainFor('button'));
 }
 function alarm(hz) {
   stopAlarm();
@@ -229,11 +234,33 @@ $('#prev').addEventListener('click', () => jump(-1));
 $('#next').addEventListener('click', () => jump(1));
 addEventListener('pointerdown', stopAlarm);
 
+// Keyboard shortcuts (listed in Settings > Keyboard). Ignored while typing and with Ctrl/Alt/Cmd, so browser shortcuts still work.
+const typing = el => el.matches('textarea, select, input:not([type=checkbox], [type=range], [type=color], [type=file])');
+function toggleDialog(d, open) {
+  if (d.open) return d.close();
+  $('dialog[open]')?.close();
+  open();
+}
 addEventListener('keydown', e => {
-  if (e.target.matches('input, textarea') || $('dialog[open]')) return;
-  if (e.code === 'Space') { e.preventDefault(); stopAlarm(); toggle(); }
-  else if (e.key === 'ArrowLeft') jump(-1);
-  else if (e.key === 'ArrowRight') jump(1);
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (typing(e.target)) {
+    if (e.key === 'Escape' && e.target.closest('#todos')) e.target.blur();
+    return;
+  }
+  const key = e.key.toLowerCase();
+  // Panel keys work everywhere, including inside the panels they close.
+  if (key === 'i') return toggleDialog($('#settings'), () => $('#open-settings').click());
+  if (key === 'r' && settings.report) return toggleDialog($('#report'), () => $('#open-report').click());
+  if (key === '?') return toggleDialog($('#settings'), () => { $('#open-settings').click(); $('#g-keys').scrollIntoView({ block: 'start' }); });
+  if ($('dialog[open]')) return;
+  if (e.code === 'Space' || key === 'k' || key === 's') { e.preventDefault(); stopAlarm(); toggle(); }
+  else if (e.key === 'ArrowLeft' || key === 'j' || key === 'a') jump(-1);
+  else if (e.key === 'ArrowRight' || key === 'l' || key === 'd') jump(1);
+  else if (key === 't') {
+    e.preventDefault(); // keep the "t" out of the input we're about to focus
+    if (settings.showTodos) $('#toggle-todos').click();
+    else { $('#toggle-todos').click(); $('#todo-add input').focus({ preventScroll: true }); }
+  }
 });
 // Stop a focused button from also firing its own click on Space release.
 addEventListener('keyup', e => { if (e.code === 'Space' && e.target.matches('button')) e.preventDefault(); });
@@ -263,6 +290,7 @@ function fillForm() {
 const dialog = $('#settings');
 $('#open-settings').addEventListener('click', () => {
   fillForm();
+  syncReportUI();
   dialog.showModal();
 });
 // Close on backdrop click. Track pointerdown too, so a text drag that ends outside doesn't close it.
@@ -292,12 +320,20 @@ $('#f-notify').addEventListener('change', async e => {
   settings.notify = on;
   save('pomo.settings', settings);
 });
-// Preview a volume when the slider is released.
-form.addEventListener('change', e => {
-  const name = e.target.name;
-  if (name === 'volume.button') click(settings.sound.resume);
-  else if (name === 'volume.alarm' || name === 'volume.master') { stopAlarm(); audio(); alarmBus = ctx.createGain(); alarmBus.connect(ctx.destination); for (let b = 0; b < 2; b++) beep(alarmBus, settings.work.hz, ctx.currentTime + b * 0.12, 0.07, 'square', 0.15 * gainFor('alarm')); }
-});
+// Preview a volume when the slider is released or nudged with keys. pointerup (not change) so a click
+// that leaves the value as-is still plays.
+function previewVolume(name) {
+  if (name === 'volume.button') return click(settings.sound.resume);
+  stopAlarm();
+  audio();
+  alarmBus = ctx.createGain();
+  alarmBus.connect(ctx.destination);
+  for (let b = 0; b < 2; b++) beep(alarmBus, settings.work.hz, ctx.currentTime + b * 0.12, 0.07, 'square', 0.15 * gainFor('alarm'));
+}
+for (const r of form.querySelectorAll('input[type=range]')) {
+  r.addEventListener('pointerup', () => previewVolume(r.name));
+  r.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End)/.test(e.key)) previewVolume(r.name); });
+}
 
 function download(name, type, text) {
   const a = document.createElement('a');
@@ -343,12 +379,16 @@ onFile('#settings-file', text => {
   render();
 });
 
+// Closing a panel or menu cancels any half-confirmed button inside it.
+const disarmIn = root => root.querySelectorAll('.armed').forEach(b => b.disarm());
+for (const d of document.querySelectorAll('dialog')) d.addEventListener('close', () => disarmIn(d));
+
 // Two-step confirm: the first press arms the button for 4 s, the second runs the action.
 function confirmable(btn, action) {
   const lbl = btn.querySelector('.lbl') ?? btn; // keep any icon, swap only the text
   const text = lbl.textContent;
   let timer;
-  const disarm = () => { clearTimeout(timer); btn.classList.remove('armed'); lbl.textContent = text; };
+  const disarm = btn.disarm = () => { clearTimeout(timer); btn.classList.remove('armed'); lbl.textContent = text; };
   btn.addEventListener('click', () => {
     if (!btn.classList.contains('armed')) {
       btn.classList.add('armed');
@@ -451,7 +491,7 @@ menu.addEventListener('beforetoggle', e => {
   for (const b of menu.querySelectorAll('[data-delete]')) b.disabled = !todos.some(matcher(b.dataset.delete));
 });
 menu.addEventListener('toggle', e => {
-  if (e.newState !== 'open') return;
+  if (e.newState === 'closed') return disarmIn(menu);
   // Flip above the button if it would run off the bottom of the screen.
   const r = menuBtn.getBoundingClientRect(), h = menu.offsetHeight;
   if (r.bottom + 6 + h > innerHeight) menu.style.top = `${Math.max(6, r.top - 6 - h)}px`;
@@ -551,6 +591,7 @@ function renderReport() {
 function syncReportUI() {
   $('#open-report').hidden = !settings.report;
   $('#report-export').disabled = $('#report-import').disabled = !settings.report;
+  $('#report-delete').disabled = !Object.keys(stats).length;
 }
 $('#open-report').addEventListener('click', () => { renderReport(); $('#report').showModal(); });
 
@@ -580,14 +621,22 @@ onFile('#report-file', text => {
   const n = mergeReport(obj);
   if (!n) return alert('No report days found in that file.');
   save('pomo.stats', stats);
+  syncReportUI();
   alert(`Imported ${plural(n, 'day')} into your report.`);
 });
 
 // Turning the report off deletes its data, so it asks first when there is any.
 const reportOff = $('#report-off');
+function clearReport() {
+  stats = {};
+  localStorage.removeItem('pomo.stats');
+  syncReportUI();
+  if ($('#report').open) renderReport();
+}
+confirmable($('#report-delete'), clearReport);
 function setReport(on) {
   settings.report = on;
-  if (!on) { stats = {}; localStorage.removeItem('pomo.stats'); }
+  if (!on) clearReport();
   save('pomo.settings', settings);
   $('#f-report').checked = on;
   syncReportUI();
