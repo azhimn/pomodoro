@@ -33,9 +33,11 @@
       </button>
     </nav>
 
-    <section id="todos" hidden aria-label="To-do list">
-      <form id="todo-add"><input name="text" placeholder="Add a task" maxlength="200" required aria-label="New task" autocomplete="off"></form>
-      <ul id="todo-list"></ul>
+    <section id="todos" aria-label="To-do list" inert>
+      <div class="todos-inner">
+        <form id="todo-add"><input name="text" placeholder="Add a task" maxlength="200" required aria-label="New task" autocomplete="off"></form>
+        <ul id="todo-list"></ul>
+      </div>
     </section>
   </main>
 
@@ -47,45 +49,167 @@
           <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>
         </button>
       </div>
-      <label>Work/break pairs per cycle <input type="number" name="cycle" min="1" max="12" step="1" required></label>
-      <fieldset><legend>Button sounds (Hz)</legend>
-        <label>Continue <input type="number" name="sound.resume" min="100" max="4000" step="10" required></label>
-        <label>Pause <input type="number" name="sound.pause" min="100" max="4000" step="10" required></label>
-        <label>Prev / next <input type="number" name="sound.skip" min="100" max="4000" step="10" required></label>
-      </fieldset>
-      <fieldset class="wide"><legend>Font</legend>
-        <label>Preset
-          <select name="font">
+
+      <div class="dialog-body">
+      <section class="group" aria-labelledby="g-timer">
+        <h3 id="g-timer">Timer</h3>
+        <div class="rows">
+          <div class="row" role="group" aria-labelledby="r-len-work">
+            <span class="row-label" id="r-len-work">Work</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="work.min" min="0" max="180" step="1" required aria-label="Work minutes"><span aria-hidden="true">min</span></label><label class="unit"><input type="number" name="work.sec" min="0" max="59" step="1" required aria-label="Work seconds"><span aria-hidden="true">sec</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-len-break">
+            <span class="row-label" id="r-len-break">Break</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="break.min" min="0" max="180" step="1" required aria-label="Break minutes"><span aria-hidden="true">min</span></label><label class="unit"><input type="number" name="break.sec" min="0" max="59" step="1" required aria-label="Break seconds"><span aria-hidden="true">sec</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-len-long">
+            <span class="row-label" id="r-len-long">Long break</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="long.min" min="0" max="180" step="1" required aria-label="Long break minutes"><span aria-hidden="true">min</span></label><label class="unit"><input type="number" name="long.sec" min="0" max="59" step="1" required aria-label="Long break seconds"><span aria-hidden="true">sec</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-cycle">
+            <span class="row-label" id="r-cycle">Pairs per cycle<span class="hint">Last break of each cycle is the long break</span></span>
+            <div class="ctrl"><label class="unit"><input type="number" name="cycle" min="1" max="12" step="1" required aria-label="Work/break pairs per cycle"><span aria-hidden="true">pairs</span></label></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-auto">Auto-start next step<span class="hint">Off: the next step waits for you to press play</span></label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-auto" name="autoStart"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="g-sound">
+        <h3 id="g-sound">Sound</h3>
+        <p class="sub" id="g-alarm">Alarm when a step ends</p>
+        <div class="rows" aria-labelledby="g-alarm" role="group">
+          <div class="row" role="group" aria-labelledby="r-hz-work">
+            <span class="row-label" id="r-hz-work">Work</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="work.hz" min="100" max="4000" step="10" required aria-label="Work alarm pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-hz-break">
+            <span class="row-label" id="r-hz-break">Break</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="break.hz" min="100" max="4000" step="10" required aria-label="Break alarm pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-hz-long">
+            <span class="row-label" id="r-hz-long">Long break</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="long.hz" min="100" max="4000" step="10" required aria-label="Long break alarm pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+        </div>
+        <p class="sub" id="g-btn">Button clicks</p>
+        <div class="rows" aria-labelledby="g-btn" role="group">
+          <div class="row" role="group" aria-labelledby="r-snd-resume">
+            <span class="row-label" id="r-snd-resume">Continue</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="sound.resume" min="100" max="4000" step="10" required aria-label="Continue click pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-snd-pause">
+            <span class="row-label" id="r-snd-pause">Pause</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="sound.pause" min="100" max="4000" step="10" required aria-label="Pause click pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-snd-skip">
+            <span class="row-label" id="r-snd-skip">Previous / next</span>
+            <div class="ctrl"><label class="unit"><input type="number" name="sound.skip" min="100" max="4000" step="10" required aria-label="Previous / next click pitch"><span aria-hidden="true">Hz</span></label></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="g-look">
+        <h3 id="g-look">Appearance</h3>
+        <p class="sub" id="g-colors">Background colors</p>
+        <div class="rows" aria-labelledby="g-colors" role="group">
+          <div class="row" role="group" aria-labelledby="r-col-work">
+            <span class="row-label" id="r-col-work">Work</span>
+            <div class="ctrl"><input type="color" name="work.color" aria-label="Work background color"></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-col-break">
+            <span class="row-label" id="r-col-break">Break</span>
+            <div class="ctrl"><input type="color" name="break.color" aria-label="Break background color"></div>
+          </div>
+          <div class="row" role="group" aria-labelledby="r-col-long">
+            <span class="row-label" id="r-col-long">Long break</span>
+            <div class="ctrl"><input type="color" name="long.color" aria-label="Long break background color"></div>
+          </div>
+        </div>
+        <p class="sub" id="g-timetext">Timer text</p>
+        <div class="rows" aria-labelledby="g-timetext" role="group">
+          <div class="row">
+            <label class="row-label" for="f-weight">Weight</label>
+            <div class="ctrl">
+              <select id="f-weight" name="timer.weight">
+                <option value="100">Thin</option>
+                <option value="200">Extra light</option>
+                <option value="300">Light</option>
+                <option value="400">Regular</option>
+                <option value="500">Medium</option>
+                <option value="600">Semibold</option>
+                <option value="700">Bold</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-italic">Italic</label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-italic" name="timer.italic"></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-underline">Underline</label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-underline" name="timer.underline"></div>
+          </div>
+        </div>
+        <p class="sub" id="g-font">Font</p>
+        <div class="rows" aria-labelledby="g-font" role="group">
+          <div class="row">
+            <label class="row-label" for="f-preset">Preset</label>
+            <div class="ctrl">
+              <select id="f-preset" name="font">
             <option value="system-ui, sans-serif">System</option>
             <option value="ui-rounded, 'SF Pro Rounded', 'Nunito', 'Quicksand', system-ui, sans-serif">Rounded</option>
             <option value="'Seravek', 'Gill Sans', 'Ubuntu', 'Segoe UI', 'Noto Sans', sans-serif">Humanist</option>
             <option value="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif">Serif</option>
             <option value="ui-monospace, 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace">Monospace</option>
-          </select>
-        </label>
-        <label>Or any installed font <input name="fontCustom" maxlength="100" placeholder="e.g. Inter" autocomplete="off"></label>
-      </fieldset>
-      <fieldset class="wide data"><legend>Data</legend>
-        <button type="button" id="todo-export">
-          <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg>
-          Export tasks (.md)
-        </button>
-        <button type="button" id="todo-import">
-          <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg>
-          Import tasks (.md)
-        </button>
-        <button type="button" id="settings-export">
-          <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg>
-          Export settings (.json)
-        </button>
-        <button type="button" id="settings-import">
-          <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg>
-          Import settings (.json)
-        </button>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-custom">Custom<span class="hint">Any installed font, overrides preset</span></label>
+            <div class="ctrl"><input id="f-custom" name="fontCustom" maxlength="100" placeholder="e.g. Inter" autocomplete="off"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="g-data">
+        <h3 id="g-data">Data</h3>
+        <div class="rows">
+          <div class="row stack">
+            <span class="row-label">Tasks<span class="hint">Markdown checklist. Import adds, never replaces.</span></span>
+            <div class="ctrl">
+              <button type="button" id="todo-export"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg> Export</button>
+              <button type="button" id="todo-import"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg> Import</button>
+            </div>
+          </div>
+          <div class="row stack">
+            <span class="row-label">Settings<span class="hint">JSON file</span></span>
+            <div class="ctrl">
+              <button type="button" id="settings-export"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg> Export</button>
+              <button type="button" id="settings-import"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg> Import</button>
+            </div>
+          </div>
+          <div class="row stack">
+            <span class="row-label">Delete tasks<span class="hint">Press twice to confirm</span></span>
+            <div class="ctrl">
+              <button type="button" class="confirm" data-delete="done">Completed</button>
+              <button type="button" class="confirm" data-delete="open">Incomplete</button>
+              <button type="button" class="confirm" data-delete="all">All</button>
+            </div>
+          </div>
+          <div class="row stack">
+            <span class="row-label">Reset settings<span class="hint">Back to defaults. Tasks are kept.</span></span>
+            <div class="ctrl"><button type="button" class="confirm" id="settings-reset">Reset</button></div>
+          </div>
+        </div>
         <input id="todo-file" type="file" accept=".md,text/markdown,text/plain" hidden>
         <input id="settings-file" type="file" accept=".json,application/json" hidden>
-      </fieldset>
-      <button class="close">Done</button>
+      </section>
+      </div>
+
+      <div class="dialog-foot"><button class="close">Done</button></div>
     </form>
   </dialog>
 

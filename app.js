@@ -4,12 +4,14 @@ const STEPS = { work: 'Work', break: 'Break', long: 'Long break' };
 const DEFAULTS = {
   cycle: 4,
   showTodos: false,
+  autoStart: false,
+  timer: { weight: '300', italic: false, underline: false },
   font: 'system-ui, sans-serif',
   fontCustom: '',
-  sound: { resume: 1200, pause: 1000, skip: 800 },
-  work: { min: 25, color: '#a65d4e', hz: 880 },
-  break: { min: 5, color: '#47705a', hz: 660 },
-  long: { min: 20, color: '#4f6488', hz: 520 },
+  sound: { resume: 600, pause: 500, skip: 400 },
+  work: { min: 25, sec: 0, color: '#a65d4e', hz: 880 },
+  break: { min: 5, sec: 0, color: '#47705a', hz: 660 },
+  long: { min: 20, sec: 0, color: '#4f6488', hz: 520 },
 };
 
 function load(key, fallback) {
@@ -36,7 +38,8 @@ function stepOf(idx, n = settings.cycle) {
     cycle: Math.floor(idx / (2 * n)) + 1,
   };
 }
-const durMs = kind => settings[kind].min * 60000;
+// At least 1 s, so 0 min 0 s can't make a step that ends instantly forever.
+const durMs = kind => Math.max(1, settings[kind].min * 60 + settings[kind].sec) * 1000;
 const label = s => `${STEPS[s.kind]} ${s.pos}/${settings.cycle} · Cycle ${s.cycle}`;
 const remaining = () => state.endsAt ? state.endsAt - Date.now() : state.left ?? durMs(stepOf(state.idx).kind);
 
@@ -58,9 +61,15 @@ function render() {
   $('#time').textContent = time;
   $('#step').textContent = label(s);
   document.title = `${time} · ${STEPS[s.kind]}`;
-  document.body.style.backgroundColor = settings[s.kind].color;
-  document.body.style.color = textOn(settings[s.kind].color);
-  document.body.style.fontFamily = settings.fontCustom || settings.font;
+  // Set on <html> so the page scrollbar can take its tint from currentColor too.
+  const root = document.documentElement.style;
+  root.backgroundColor = settings[s.kind].color;
+  root.color = textOn(settings[s.kind].color);
+  root.fontFamily = settings.fontCustom || settings.font;
+  const t = $('#time').style;
+  t.fontWeight = settings.timer.weight;
+  t.fontStyle = settings.timer.italic ? 'italic' : 'normal';
+  t.textDecorationLine = settings.timer.underline ? 'underline' : 'none';
   $('#toggle').classList.toggle('running', running);
   $('#toggle').ariaLabel = running ? 'Pause' : 'Continue';
 }
@@ -122,7 +131,8 @@ function jump(delta) {
 }
 function finish(sound) {
   if (sound) alarm(settings[stepOf(state.idx).kind].hz);
-  setState({ idx: state.idx + 1, endsAt: null, left: null });
+  const idx = state.idx + 1;
+  setState({ idx, endsAt: settings.autoStart ? Date.now() + durMs(stepOf(idx).kind) : null, left: null });
 }
 
 $('#toggle').addEventListener('click', toggle);
@@ -141,14 +151,8 @@ addEventListener('keyup', e => { if (e.code === 'Space' && e.target.matches('but
 
 // ---- Settings dialog ----
 const form = $('#settings form');
-form.querySelector('label').insertAdjacentHTML('beforebegin', Object.entries(STEPS).map(([k, name]) => `
-  <fieldset><legend>${name}</legend>
-    <label>Minutes <input type="number" name="${k}.min" min="1" max="180" step="1" required></label>
-    <label>Color <input type="color" name="${k}.color"></label>
-    <label>Pitch (Hz) <input type="number" name="${k}.hz" min="100" max="4000" step="10" required></label>
-  </fieldset>`).join(''));
-
 const fields = () => form.querySelectorAll('[name]');
+const valueOf = el => el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value;
 function setField(el, v) {
   const [k, f] = el.name.split('.');
   if (f) settings[k][f] = v; else settings[k] = v;
@@ -156,7 +160,8 @@ function setField(el, v) {
 function fillForm() {
   for (const el of fields()) {
     const [k, f] = el.name.split('.');
-    el.value = f ? settings[k][f] : settings[k];
+    const v = f ? settings[k][f] : settings[k];
+    if (el.type === 'checkbox') el.checked = v; else el.value = v;
   }
 }
 
@@ -172,7 +177,7 @@ dialog.addEventListener('click', e => { if (downOnBackdrop && e.target === dialo
 form.addEventListener('input', e => {
   const el = e.target;
   if (!el.name || !el.checkValidity()) return;
-  setField(el, el.type === 'number' ? Number(el.value) : el.value);
+  setField(el, valueOf(el));
   save('pomo.settings', settings);
   render();
 });
@@ -200,9 +205,14 @@ function importSettings(obj) {
     const [k, f] = el.name.split('.');
     const v = f ? obj?.[k]?.[f] : obj?.[k];
     if (v == null || typeof v === 'object') continue;
-    el.value = String(v);
-    if (!el.checkValidity() || el.value.toLowerCase() !== String(v).toLowerCase()) continue;
-    setField(el, el.type === 'number' ? Number(el.value) : el.value);
+    if (el.type === 'checkbox') {
+      if (typeof v !== 'boolean') continue;
+      el.checked = v;
+    } else {
+      el.value = String(v);
+      if (!el.checkValidity() || el.value.toLowerCase() !== String(v).toLowerCase()) continue;
+    }
+    setField(el, valueOf(el));
     applied++;
   }
   fillForm(); // rejected values show the current setting again
@@ -216,6 +226,31 @@ onFile('#settings-file', text => {
   render();
 });
 
+// Two-step confirm: the first press arms the button for 4 s, the second runs the action.
+function confirmable(btn, action) {
+  const text = btn.textContent;
+  let timer;
+  const disarm = () => { clearTimeout(timer); btn.classList.remove('armed'); btn.textContent = text; };
+  btn.addEventListener('click', () => {
+    if (!btn.classList.contains('armed')) {
+      btn.classList.add('armed');
+      btn.textContent = 'Confirm';
+      timer = setTimeout(disarm, 4000);
+      return;
+    }
+    disarm();
+    action();
+  });
+}
+confirmable($('#settings-reset'), () => {
+  const showTodos = settings.showTodos; // UI state, not a preference
+  for (const k in DEFAULTS) settings[k] = typeof DEFAULTS[k] === 'object' ? { ...DEFAULTS[k] } : DEFAULTS[k];
+  settings.showTodos = showTodos;
+  save('pomo.settings', settings);
+  fillForm();
+  render();
+});
+
 // ---- To-do list ----
 let todos = load('pomo.todos', []);
 if (!Array.isArray(todos)) todos = [];
@@ -223,49 +258,72 @@ const list = $('#todo-list');
 const X_ICON = '<svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
 
 // Item: { text, done } where done is null (open) or the completion note, e.g. "2026-10-16 14:32 · Work 3/4 · Cycle 2".
-function renderTodos() {
-  list.replaceChildren(...todos.map((t, i) => {
-    const li = document.createElement('li');
-    li.dataset.i = i;
-    li.innerHTML = `<label><input type="checkbox"><span></span></label><small></small><button class="icon" aria-label="Delete task">${X_ICON}</button>`;
-    li.querySelector('input').checked = t.done != null;
-    li.querySelector('span').textContent = t.text; // textContent: imported files are untrusted
-    li.querySelector('small').textContent = t.done ?? '';
-    return li;
-  }));
-  $('#todos').hidden = !settings.showTodos;
+// Each <li> keeps a reference to its item, so single adds/edits/deletes can animate without re-rendering the list.
+function todoEl(t, animate) {
+  const li = document.createElement('li');
+  li.todo = t;
+  if (animate) li.className = 'new';
+  li.innerHTML = `<div class="todo"><label><input type="checkbox"><span class="text"></span></label><button class="icon" aria-label="Delete task">${X_ICON}</button><div class="stamp"><small></small></div></div>`;
+  li.querySelector('input').checked = t.done != null;
+  li.querySelector('.todo').classList.toggle('done', t.done != null);
+  li.querySelector('.text').textContent = t.text; // textContent: imported files are untrusted
+  li.querySelector('small').textContent = t.done ?? '';
+  return li;
+}
+function leave(li) {
+  li.classList.add('leaving');
+  li.addEventListener('animationend', () => li.remove(), { once: true });
+}
+const renderTodos = () => list.replaceChildren(...todos.map(t => todoEl(t)));
+function renderTodoPanel() {
+  $('#todos').classList.toggle('open', settings.showTodos);
+  $('#todos').inert = !settings.showTodos; // collapsed list stays out of tab order and screen readers
   $('#toggle-todos').ariaPressed = String(settings.showTodos);
   $('#toggle-todos').ariaLabel = settings.showTodos ? 'Hide to-do list' : 'Show to-do list';
 }
-function saveTodos() {
-  save('pomo.todos', todos);
-  renderTodos();
+const saveTodos = () => save('pomo.todos', todos);
+function addTodos(items) {
+  todos.push(...items);
+  saveTodos();
+  for (const t of items) list.append(todoEl(t, true));
+  list.lastElementChild?.scrollIntoView({ block: 'nearest' });
+}
+// Data is removed and saved first; the animation only follows.
+function deleteTodos(match) {
+  todos = todos.filter(t => !match(t));
+  saveTodos();
+  for (const li of list.children) if (match(li.todo)) leave(li);
 }
 
 $('#toggle-todos').addEventListener('click', () => {
   settings.showTodos = !settings.showTodos;
   save('pomo.settings', settings);
-  renderTodos();
+  renderTodoPanel();
 });
 $('#todo-add').addEventListener('submit', e => {
   e.preventDefault();
   const input = e.target.text, text = input.value.trim();
-  if (text) todos.push({ text, done: null });
   input.value = '';
-  saveTodos();
+  if (text) addTodos([{ text, done: null }]);
 });
 list.addEventListener('change', e => {
+  const li = e.target.closest('li');
   // sv-SE locale formats as "YYYY-MM-DD HH:MM:SS" in local time.
   const stamp = new Date().toLocaleString('sv-SE').slice(0, 16);
-  todos[e.target.closest('li').dataset.i].done = e.target.checked ? `${stamp} · ${label(stepOf(state.idx))}` : null;
+  li.todo.done = e.target.checked ? `${stamp} · ${label(stepOf(state.idx))}` : null;
   saveTodos();
+  // Keep the old stamp text while it collapses; only write it when showing.
+  if (e.target.checked) li.querySelector('small').textContent = li.todo.done;
+  li.querySelector('.todo').classList.toggle('done', e.target.checked);
 });
 list.addEventListener('click', e => {
   const btn = e.target.closest('button');
-  if (!btn) return;
-  todos.splice(btn.closest('li').dataset.i, 1);
-  saveTodos();
+  if (btn) deleteTodos(t => t === btn.closest('li').todo);
 });
+for (const btn of document.querySelectorAll('[data-delete]')) {
+  const kind = btn.dataset.delete;
+  confirmable(btn, () => deleteTodos(t => kind === 'all' || (kind === 'done') === (t.done != null)));
+}
 
 const toMarkdown = items => items.map(t => `- [${t.done != null ? 'x' : ' '}] ${t.text}${t.done ? ' — ' + t.done : ''}`).join('\n') + '\n';
 function fromMarkdown(md) {
@@ -284,8 +342,7 @@ $('#todo-import').addEventListener('click', () => $('#todo-file').click());
 onFile('#todo-file', text => {
   const items = fromMarkdown(text);
   if (!items.length) return alert('No "- [ ] task" lines found in that file.');
-  todos.push(...items); // append, never overwrite
-  saveTodos();
+  addTodos(items); // append, never overwrite
 });
 
 // ---- Self-check for the sequence logic (failures show in the console) ----
@@ -300,8 +357,15 @@ function selfTest() {
 }
 selfTest();
 
-// Step ended while the page was closed: move on quietly and wait.
-if (state.endsAt && remaining() <= 0) finish(false);
+// Step ended while the page was closed: catch up quietly. Auto-start replays the steps that passed; otherwise wait.
+if (state.endsAt && remaining() <= 0) {
+  if (settings.autoStart) {
+    let { idx, endsAt } = state;
+    while (endsAt <= Date.now()) endsAt += durMs(stepOf(++idx).kind);
+    setState({ idx, endsAt });
+  } else finish(false);
+}
 render();
 renderTodos();
+renderTodoPanel();
 setInterval(() => (state.endsAt && remaining() <= 0 ? finish(true) : render()), 250);

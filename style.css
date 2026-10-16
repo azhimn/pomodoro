@@ -1,13 +1,31 @@
 * { box-sizing: border-box; }
 
+html {
+  --ease: cubic-bezier(.25, 1, .5, 1);
+  font-family: system-ui, sans-serif;
+  transition: background-color .8s var(--ease), color .8s var(--ease);
+  -webkit-font-smoothing: antialiased;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: system-ui, sans-serif;
   display: flex;
   flex-direction: column;
-  transition: background-color .8s cubic-bezier(.25, 1, .5, 1), color .8s cubic-bezier(.25, 1, .5, 1);
-  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars: 4px, no arrow buttons, thumb only while hovering the scroll area. */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
+html:hover::-webkit-scrollbar-thumb, #todo-list:hover::-webkit-scrollbar-thumb { background: color-mix(in oklab, currentColor 25%, transparent); }
+dialog:hover::-webkit-scrollbar-thumb { background: #d9cfc4; }
+/* Firefox only: in Chrome these standard properties replace ::-webkit-scrollbar and bring the arrows back. */
+@supports not selector(::-webkit-scrollbar) {
+  html, dialog, #todo-list { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  html:hover, #todo-list:hover { scrollbar-color: color-mix(in oklab, currentColor 25%, transparent) transparent; }
+  dialog:hover { scrollbar-color: #d9cfc4 transparent; }
 }
 
 ::selection { background: color-mix(in oklab, currentColor 25%, transparent); }
@@ -29,6 +47,8 @@ main {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
+  text-decoration-thickness: .035em;
+  text-underline-offset: .03em;
 }
 
 #step { font-size: 1.15rem; letter-spacing: .01em; opacity: .9; margin-top: .75rem; }
@@ -79,80 +99,171 @@ dialog {
   border: none;
   border-radius: 1.25rem;
   padding: 0;
-  width: min(28rem, 92vw);
+  width: min(30rem, 94vw);
+  max-height: min(48rem, 90vh);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #d3c9be transparent;
+  overscroll-behavior: contain;
   background: #f6f3ef;
   color: #34302c;
   box-shadow: 0 12px 40px rgb(30 20 10 / .18);
+  /* Open/close: fade + lift. allow-discrete keeps it rendered while the close animation plays. */
+  opacity: 0; scale: .97; translate: 0 .75rem;
+  transition: opacity .22s ease-out, scale .32s var(--ease), translate .32s var(--ease),
+              overlay .32s allow-discrete, display .32s allow-discrete;
 }
-dialog::backdrop { background: rgb(20 15 10 / .25); }
-dialog h2 { margin: 0; font-size: 1.25rem; font-weight: 500; }
-dialog::-webkit-scrollbar { width: 6px; }
-dialog::-webkit-scrollbar-thumb { background: #d3c9be; border-radius: 3px; }
-dialog form { display: flex; flex-direction: column; gap: 1rem; padding: 1.75rem; }
-.dialog-head { display: flex; justify-content: space-between; align-items: center; margin: -.4rem -.6rem 0 0; }
-.dialog-head svg { width: 1.25rem; height: 1.25rem; }
+dialog[open] { opacity: 1; scale: 1; translate: 0; }
+@starting-style { dialog[open] { opacity: 0; scale: .97; translate: 0 .75rem; } }
+dialog::backdrop {
+  background: rgb(20 15 10 / 0);
+  transition: background-color .32s var(--ease), overlay .32s allow-discrete, display .32s allow-discrete;
+}
+dialog[open]::backdrop { background: rgb(20 15 10 / .25); }
+@starting-style { dialog[open]::backdrop { background: rgb(20 15 10 / 0); } }
 dialog ::selection { background: #e2d9cf; }
-fieldset {
-  border: none;
-  border-radius: .9rem;
-  background: #ece7e1;
-  padding: .75rem .9rem .9rem;
-  margin: 0;
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .6rem;
+
+/* Head and foot stay pinned so Close and Done are always in reach while scrolling. */
+.dialog-head, .dialog-foot {
+  position: sticky; z-index: 1;
+  display: flex; align-items: center;
+  background: color-mix(in oklab, #f6f3ef 88%, transparent);
+  backdrop-filter: blur(8px);
 }
-fieldset.wide { grid-template-columns: 1fr 1fr; }
-legend { float: left; grid-column: 1 / -1; padding: 0; font-size: .85rem; font-weight: 500; color: #6b635b; }
-dialog label { display: flex; flex-direction: column; font-size: .8rem; gap: .3rem; color: #5a534c; }
+.dialog-head { top: 0; justify-content: space-between; padding: 1rem 1rem .75rem 1.5rem; }
+.dialog-foot { bottom: 0; justify-content: flex-end; padding: .75rem 1.5rem 1rem; }
+.dialog-head h2 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: -.01em; }
+.dialog-head svg { width: 1.15rem; height: 1.15rem; }
+.dialog-body { display: flex; flex-direction: column; gap: 1.75rem; padding: .25rem 1.5rem .5rem; }
+
+.group h3 { margin: 0 0 .6rem; font-size: .95rem; font-weight: 600; color: #3f3a35; }
+.group .sub { margin: .9rem 0 .4rem; font-size: .8rem; color: #6b635b; }
+.group h3 + .sub { margin-top: 0; }
+.rows { background: #ece7e1; border-radius: .9rem; }
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  min-height: 3rem; padding: .45rem .5rem .45rem .9rem;
+}
+.row + .row { box-shadow: inset 0 1px #e1d9d0; } /* hairline divider without a border box */
+.row-label { display: flex; flex-direction: column; gap: .1rem; font-size: .9rem; color: #3f3a35; }
+.hint { font-size: .75rem; color: #6b635b; }
+.ctrl { display: flex; align-items: center; gap: .4rem; flex: none; }
+.unit { display: flex; align-items: center; gap: .3rem; font-size: .8rem; color: #6b635b; }
+
 dialog input, dialog select {
   font: inherit; font-size: .95rem; color: #34302c;
   padding: .4rem .55rem; min-width: 0;
-  background: #fdfcfa;
-  border: 1px solid #ddd5cc; border-radius: .55rem;
+  background: #f8f5f1;
+  border: none; border-radius: .55rem;
+  transition: background-color .2s, box-shadow .2s;
 }
+dialog input[type=number] { width: 4.25rem; text-align: right; font-variant-numeric: tabular-nums; }
+.unit:has([name$=".hz"], [name^="sound."]) input { width: 5rem; }
+#f-custom, #f-preset { width: 11rem; }
+#f-weight { width: 9rem; }
 dialog input::placeholder { color: #6f665d; }
-dialog input, dialog select { transition: border-color .2s, box-shadow .2s; }
-dialog input:hover, dialog select:hover { border-color: #d2c8bd; }
-dialog input:focus, dialog select:focus { outline: none; border-color: #cbbfb2; box-shadow: 0 0 0 3px rgb(150 130 110 / .12); }
+dialog input:hover, dialog select:hover { background-color: #fdfcfa; }
+dialog input:focus, dialog select:focus { outline: none; background-color: #fff; box-shadow: 0 0 0 3px rgb(150 130 110 / .16); }
 /* Native spinners are hard-edged; arrow keys still step the value. */
 dialog input[type=number] { appearance: textfield; }
 dialog input[type=number]::-webkit-inner-spin-button, dialog input[type=number]::-webkit-outer-spin-button { appearance: none; margin: 0; }
 dialog select {
   appearance: none; cursor: pointer; padding-right: 2rem;
-  background: #fdfcfa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%237a7168'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,48,88H208a8,8,0,0,1,5.66,13.66Z'/%3E%3C/svg%3E") no-repeat right .6rem center / .8rem;
+  background: #f8f5f1 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%237a7168'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,48,88H208a8,8,0,0,1,5.66,13.66Z'/%3E%3C/svg%3E") no-repeat right .6rem center / .8rem;
 }
-dialog input[type=color] { height: 2.25rem; padding: .25rem; cursor: pointer; }
+dialog input[type=color] { width: 4.25rem; height: 2.1rem; padding: .2rem; cursor: pointer; }
 dialog input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
-dialog input[type=color]::-webkit-color-swatch { border: none; border-radius: .35rem; }
-dialog input[type=color]::-moz-color-swatch { border: none; border-radius: .35rem; }
-dialog .data button { display: inline-flex; gap: .45rem; align-items: center; justify-content: center; font-size: .85rem; border-color: #d6cdc3; background: #fdfcfa; }
-dialog .data button:hover { background: #fff; }
-dialog .data svg { width: 1rem; height: 1rem; flex: none; }
-dialog .close { align-self: flex-end; background: #34302c; color: #f6f3ef; border: none; padding: .5rem 1.25rem; }
+dialog input[type=color]::-webkit-color-swatch { border: none; border-radius: .4rem; }
+dialog input[type=color]::-moz-color-swatch { border: none; border-radius: .4rem; }
+
+dialog .ctrl button {
+  display: inline-flex; gap: .4rem; align-items: center; white-space: nowrap;
+  font-size: .85rem; padding: .4rem .75rem; border: none; background: #f8f5f1;
+}
+dialog .ctrl button:hover { background: #fdfcfa; }
+dialog .ctrl svg { width: .95rem; height: .95rem; flex: none; }
+/* Switch: a pill with a knob drawn as a gradient, so no pseudo-elements on <input> are needed. */
+dialog input.switch {
+  appearance: none; margin: 0; cursor: pointer; flex: none;
+  width: 2.6rem; height: 1.5rem; padding: 0; border-radius: 1rem;
+  background: radial-gradient(circle closest-side, #fff 92%, transparent) no-repeat left .2rem center / 1.1rem 1.1rem, #d6ccc1;
+  transition: background-position .25s var(--ease), background-color .25s;
+}
+dialog input.switch:checked { background-position: right .2rem center; background-color: #6f8a6a; }
+dialog input.switch:hover { background-color: #cdc2b6; }
+dialog input.switch:checked:hover { background-color: #657f60; }
+dialog input.switch:focus-visible { box-shadow: 0 0 0 3px rgb(150 130 110 / .25); }
+
+dialog .ctrl button.armed { background: #a4503f; color: #fff8f4; }
+dialog .ctrl button.armed:hover { background: #944635; }
+
+dialog .close { background: #34302c; color: #f6f3ef; border: none; padding: .5rem 1.4rem; }
 dialog .close:hover { background: #4a443e; }
 
-#todos { width: min(28rem, 100%); margin-top: 2.75rem; }
+/* Narrow screens: long labels and button pairs drop under their label instead of squeezing. */
+@media (max-width: 26rem) {
+  .row.stack, .row:has(#f-custom), .row:has(#f-preset) { flex-direction: column; align-items: stretch; gap: .45rem; padding-block: .7rem; }
+  #f-custom, #f-preset { width: 100%; }
+  .row.stack .ctrl button { flex: 1; justify-content: center; }
+}
+
+#todos {
+  width: min(28rem, 100%);
+  display: grid; grid-template-rows: 0fr;
+  opacity: 0; translate: 0 -.5rem; margin-top: 0;
+  transition: grid-template-rows .45s cubic-bezier(.25, 1, .5, 1), margin-top .45s cubic-bezier(.25, 1, .5, 1), opacity .3s, translate .45s cubic-bezier(.25, 1, .5, 1);
+}
+#todos.open { grid-template-rows: 1fr; opacity: 1; translate: 0; margin-top: 2.25rem; }
+.todos-inner { min-height: 0; overflow: hidden; padding: 4px; } /* padding keeps the focus ring from being clipped */
+#todos:not(.open) .todos-inner { padding-block: 0; }
+.todos-inner { transition: padding .45s cubic-bezier(.25, 1, .5, 1); }
 #todo-add input {
   width: 100%; font: inherit; color: inherit; padding: .6rem .9rem;
-  background: color-mix(in oklab, currentColor 8%, transparent);
-  border: 1px solid color-mix(in oklab, currentColor 18%, transparent); border-radius: .9rem;
+  background: color-mix(in oklab, currentColor 10%, transparent);
+  border: none; border-radius: .9rem;
+  transition: background-color .2s, box-shadow .2s;
 }
+#todo-add input:hover { background: color-mix(in oklab, currentColor 13%, transparent); }
 #todo-add input::placeholder { color: inherit; opacity: .7; }
-#todo-add input:focus-visible { outline: 2px solid color-mix(in oklab, currentColor 45%, transparent); outline-offset: 2px; }
-#todo-list {
-  list-style: none; padding: 0; margin: .75rem 0; max-height: 40vh; overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: color-mix(in oklab, currentColor 30%, transparent) transparent;
+#todo-add input:focus-visible { outline: none; background: color-mix(in oklab, currentColor 14%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 20%, transparent); }
+#todo-list { list-style: none; padding: 0; margin: .75rem 0; max-height: 40vh; overflow-y: auto; }
+/* Each row animates its own height via grid rows (0fr <-> 1fr), so neighbours slide instead of jumping. */
+#todo-list li { display: grid; grid-template-rows: 1fr; }
+#todo-list li.new { animation: todo-in .4s var(--ease); }
+#todo-list li.leaving { animation: todo-out .3s ease-in forwards; pointer-events: none; }
+@keyframes todo-in { from { grid-template-rows: 0fr; opacity: 0; translate: 0 -.4rem; } }
+@keyframes todo-out { to { grid-template-rows: 0fr; opacity: 0; translate: 1rem 0; } }
+.todo {
+  min-height: 0; overflow: hidden;
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  padding: .3rem 2px .3rem calc(.2rem + 2px); margin-inline: -2px; /* side room so focus rings aren't clipped */
 }
-#todo-list li { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: .3rem 0 .3rem .2rem; }
 #todo-list label { display: flex; gap: .6rem; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
-#todo-list input { accent-color: currentColor; width: 1.05rem; height: 1.05rem; flex: none; }
-#todo-list input:checked + span { text-decoration: line-through; text-decoration-color: color-mix(in oklab, currentColor 50%, transparent); opacity: .75; }
-#todo-list small { grid-column: 1; opacity: .8; padding-left: 1.65rem; font-size: .8rem; }
-#todo-list small:empty { display: none; }
+#todo-list input {
+  appearance: none; margin: 0; flex: none; cursor: pointer; color: inherit; /* inputs don't inherit text color */
+  width: 1.15rem; height: 1.15rem; border-radius: .35rem;
+  background: color-mix(in oklab, currentColor 16%, transparent);
+  transition: background-color .2s, scale .15s var(--ease);
+}
+#todo-list input:hover { background: color-mix(in oklab, currentColor 24%, transparent); }
+#todo-list input:active { scale: .85; }
+#todo-list input:checked { background: color-mix(in oklab, currentColor 80%, transparent); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm-34.34,77.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E") center / 128% no-repeat; }
+#todo-list input:focus-visible { outline: 2px solid color-mix(in oklab, currentColor 45%, transparent); outline-offset: 2px; }
+.todo .text {
+  text-decoration: line-through; text-decoration-color: transparent;
+  transition: text-decoration-color .3s var(--ease), opacity .3s;
+}
+.todo.done .text { text-decoration-color: color-mix(in oklab, currentColor 55%, transparent); opacity: .75; }
+.stamp {
+  grid-column: 1; display: grid; grid-template-rows: 0fr; opacity: 0;
+  transition: grid-template-rows .35s var(--ease), opacity .25s;
+}
+.todo.done .stamp { grid-template-rows: 1fr; opacity: .8; }
+.stamp small { min-height: 0; overflow: hidden; padding-left: 1.75rem; font-size: .8rem; }
+.todo.done .stamp small { padding-top: .1rem; }
 #todo-list button { grid-column: 2; grid-row: 1; padding: .4rem; opacity: .55; }
 #todo-list button:hover { opacity: 1; }
 #todo-list svg { width: 1rem; height: 1rem; }
 
-@media (prefers-reduced-motion: reduce) { body, button { transition: none; } }
+/* Reduced motion: near-zero durations rather than none, so animationend still fires and deleted rows get removed. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::backdrop { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
