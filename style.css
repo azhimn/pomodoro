@@ -180,6 +180,7 @@ dialog .ctrl button {
   font-size: .85rem; padding: .4rem .75rem; border: none; background: #f8f5f1;
 }
 dialog .ctrl button:hover { background: #fdfcfa; }
+dialog .ctrl button:disabled { opacity: .45; cursor: default; background: #f8f5f1; }
 dialog .ctrl svg { width: .95rem; height: .95rem; flex: none; }
 /* Switch: a pill with a knob drawn as a gradient, so no pseudo-elements on <input> are needed. */
 dialog input.switch {
@@ -223,8 +224,57 @@ dialog input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px
 dialog .close { background: #34302c; color: #f6f3ef; border: none; padding: .5rem 1.4rem; }
 dialog .close:hover { background: #4a443e; }
 
+/* Settings: privacy note and source link. */
+.about p { margin: 0 0 .75rem; font-size: .85rem; line-height: 1.55; color: #4a443e; max-width: 60ch; }
+.about a {
+  display: inline-flex; align-items: center; gap: .45rem; font-size: .9rem; color: #34302c;
+  text-decoration: underline; text-decoration-color: #c9bfb4; text-underline-offset: .2em;
+  border-radius: .4rem;
+}
+.about a:hover { text-decoration-color: currentColor; }
+.about a:focus-visible { outline: 2px solid #b9aa9a; outline-offset: 3px; }
+.about svg { width: 1.1rem; height: 1.1rem; }
+
+/* Report */
+#report .dialog-head form { display: contents; }
+.val { font-size: .95rem; font-variant-numeric: tabular-nums; color: #34302c; padding-right: .4rem; }
+.streak { padding: .25rem 0 0; }
+.streak-now { margin: 0; display: flex; align-items: baseline; gap: .5rem; color: #34302c; }
+#r-streak { font-size: 3rem; font-weight: 600; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+#r-streak-unit { font-size: 1.05rem; color: #4a443e; }
+.streak .hint { margin: .4rem 0 0; display: block; }
+.fineprint { margin: 0; font-size: .75rem; color: #6b635b; }
+
+.chart-wrap { padding: .8rem .9rem .7rem; }
+.chart-readout { margin: 0 0 .6rem; font-size: .85rem; color: #4a443e; font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; height: 8.5rem; }
+.bar { display: flex; flex-direction: column; align-items: center; gap: .35rem; border-radius: .4rem; outline: none; cursor: default; }
+.bar .track { flex: 1; width: 100%; max-width: 1.9rem; display: flex; align-items: flex-end; border-radius: .3rem; background: #e3dcd4; }
+/* 4px rounded top, flat on the baseline. */
+.bar .fill { width: 100%; background: #5a8a50; border-radius: 4px 4px 0 0; transition: height .5s var(--ease); }
+.bar:hover .fill, .bar:focus-visible .fill { background: #4b7743; }
+.bar:focus-visible .track { box-shadow: 0 0 0 2px #f6f3ef, 0 0 0 4px #b9aa9a; }
+.bar .day { font-size: .72rem; color: #6b635b; }
+.bar.today .day { color: #34302c; font-weight: 600; }
+
+/* Small confirmation dialog */
+.confirm-dialog { width: min(30rem, 92vw); padding: 1.5rem; }
+.confirm-dialog h2 { margin: 0 0 .5rem; font-size: 1.1rem; font-weight: 600; }
+.confirm-dialog p { margin: 0 0 1.25rem; font-size: .9rem; line-height: 1.5; color: #4a443e; }
+.confirm-actions { display: flex; gap: .5rem; align-items: center; }
+.confirm-actions button { white-space: nowrap; }
+.confirm-actions .spacer { flex: 1; }
+.confirm-actions button { display: inline-flex; align-items: center; gap: .4rem; border: none; background: #ece7e1; font-size: .875rem; padding: .5rem .9rem; }
+.confirm-actions button:hover { background: #e3dcd4; }
+.confirm-actions svg { width: .95rem; height: .95rem; }
+.confirm-actions .danger { background: #a4503f; color: #fff8f4; }
+.confirm-actions .danger:hover { background: #944635; }
+
 /* Narrow screens: long labels and button pairs drop under their label instead of squeezing. */
 @media (max-width: 26rem) {
+  .confirm-actions { flex-wrap: wrap; }
+  .confirm-actions .spacer { display: none; }
+  .confirm-actions button { flex: 1 1 auto; justify-content: center; }
   .row.stack, .row:has(#f-custom), .row:has(#f-preset) { flex-direction: column; align-items: stretch; gap: .45rem; padding-block: .7rem; }
   #f-custom, #f-preset { width: 100%; }
   .row.stack .ctrl button { flex: 1; justify-content: center; }

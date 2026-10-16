@@ -9,6 +9,9 @@
 <body>
   <!-- Icons: Phosphor (https://phosphoricons.com), MIT license -->
   <header>
+    <button id="open-report" class="icon" aria-label="Your report">
+      <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16h8V136a8,8,0,0,1,8-8H72a8,8,0,0,1,8,8v64H96V88a8,8,0,0,1,8-8h32a8,8,0,0,1,8,8V200h16V40a8,8,0,0,1,8-8h40a8,8,0,0,1,8,8V200h8A8,8,0,0,1,232,208Z"/></svg>
+    </button>
     <button id="toggle-todos" class="icon" aria-label="Show to-do list" aria-pressed="false">
       <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM117.66,149.66l-32,32a8,8,0,0,1-11.32,0l-16-16a8,8,0,0,1,11.32-11.32L80,164.69l26.34-26.35a8,8,0,0,1,11.32,11.32Zm0-64-32,32a8,8,0,0,1-11.32,0l-16-16A8,8,0,0,1,69.66,90.34L80,100.69l26.34-26.35a8,8,0,0,1,11.32,11.32ZM192,168H144a8,8,0,0,1,0-16h48a8,8,0,0,1,0,16Zm0-64H144a8,8,0,0,1,0-16h48a8,8,0,0,1,0,16Z"/></svg>
     </button>
@@ -83,6 +86,14 @@
           <div class="row">
             <label class="row-label" for="f-auto">Auto-start next step<span class="hint">Off: the next step waits for you to press play</span></label>
             <div class="ctrl"><input type="checkbox" class="switch" id="f-auto" name="autoStart"></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-daily">Start fresh each day<span class="hint">Back to Work, pair 1, cycle 1 on a new day</span></label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-daily" name="dailyReset"></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-notify">Notify when a step ends<span class="hint">Only while this tab is in the background</span></label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-notify" name="notify" data-noimport></div>
           </div>
         </div>
       </section>
@@ -224,10 +235,89 @@
         <input id="todo-file" type="file" accept=".md,text/markdown,text/plain" hidden>
         <input id="settings-file" type="file" accept=".json,application/json" hidden>
       </section>
+
+      <section class="group" aria-labelledby="g-report">
+        <h3 id="g-report">Personal report</h3>
+        <div class="rows">
+          <div class="row">
+            <label class="row-label" for="f-report">Keep a personal report<span class="hint">Streaks and focus time. Turning it off deletes the history.</span></label>
+            <div class="ctrl"><input type="checkbox" class="switch" id="f-report" name="report" data-noimport></div>
+          </div>
+          <div class="row stack">
+            <span class="row-label">Report data<span class="hint">JSON file. Import merges, never replaces.</span></span>
+            <div class="ctrl">
+              <button type="button" id="report-export"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg> Export</button>
+              <button type="button" id="report-import"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg> Import</button>
+            </div>
+          </div>
+        </div>
+        <input id="report-file" type="file" accept=".json,application/json" hidden>
+      </section>
+
+      <section class="group about" aria-labelledby="g-about">
+        <h3 id="g-about">Privacy</h3>
+        <p>Everything you do here stays in this browser. Nothing is sent to a server: no accounts, no analytics, no tracking. Clearing your browser's site data erases it, so export anything you want to keep.</p>
+        <a href="https://github.com/azhimn/pomodoro" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,104v8a56.06,56.06,0,0,1-48.44,55.47A39.8,39.8,0,0,1,176,192v40a8,8,0,0,1-8,8H104a8,8,0,0,1-8-8V216H72a40,40,0,0,1-40-40A24,24,0,0,0,8,152a8,8,0,0,1,0-16,40,40,0,0,1,40,40,24,24,0,0,0,24,24H96v-8a39.8,39.8,0,0,1,8.44-24.53A56.06,56.06,0,0,1,56,112v-8a58.14,58.14,0,0,1,7.69-28.32A59.78,59.78,0,0,1,69.07,28,8,8,0,0,1,76,24a59.75,59.75,0,0,1,48,24h24a59.75,59.75,0,0,1,48-24,8,8,0,0,1,6.93,4,59.74,59.74,0,0,1,5.37,47.68A58,58,0,0,1,216,104Z"/></svg> View source on GitHub</a>
+      </section>
       </div>
 
       <div class="dialog-foot"><button class="close">Done</button></div>
     </form>
+  </dialog>
+
+  <dialog id="report" aria-labelledby="report-title">
+    <div class="dialog-head">
+      <h2 id="report-title">Your report</h2>
+      <form method="dialog"><button class="icon" aria-label="Close report"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg></button></form>
+    </div>
+    <div class="dialog-body">
+      <section class="group streak" aria-label="Streak">
+        <p class="streak-now"><span id="r-streak">0</span> <span id="r-streak-unit">day streak</span></p>
+        <p class="hint" id="r-streak-note"></p>
+      </section>
+
+      <section class="group" aria-labelledby="g-today">
+        <h3 id="g-today">Today</h3>
+        <div class="rows">
+          <div class="row"><span class="row-label">Focus</span><span class="val" id="r-today-work"></span></div>
+          <div class="row"><span class="row-label">Breaks</span><span class="val" id="r-today-break"></span></div>
+          <div class="row"><span class="row-label">Pomodoros finished</span><span class="val" id="r-today-pomos"></span></div>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="g-week">
+        <h3 id="g-week">Focus, last 7 days</h3>
+        <div class="rows chart-wrap">
+          <p class="chart-readout" id="r-readout" aria-live="polite"></p>
+          <div class="bars" id="r-bars"></div>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="g-all">
+        <h3 id="g-all">All time</h3>
+        <div class="rows">
+          <div class="row"><span class="row-label">Focus</span><span class="val" id="r-all-work"></span></div>
+          <div class="row"><span class="row-label">Breaks</span><span class="val" id="r-all-break"></span></div>
+          <div class="row"><span class="row-label">Pomodoros finished</span><span class="val" id="r-all-pomos"></span></div>
+          <div class="row"><span class="row-label">Cycles finished</span><span class="val" id="r-all-cycles"></span></div>
+          <div class="row"><span class="row-label">Longest streak</span><span class="val" id="r-best"></span></div>
+          <div class="row"><span class="row-label">Days with a pomodoro</span><span class="val" id="r-days"></span></div>
+        </div>
+      </section>
+      <p class="fineprint">Counts time the timer actually ran. Kept only in this browser.</p>
+    </div>
+    <form method="dialog" class="dialog-foot"><button class="close">Done</button></form>
+  </dialog>
+
+  <dialog id="report-off" class="confirm-dialog" aria-labelledby="ro-title" aria-describedby="ro-desc">
+    <h2 id="ro-title">Turn off the personal report?</h2>
+    <p id="ro-desc">This deletes your report history (<span id="ro-days"></span>) from this browser. It can't be undone.</p>
+    <div class="confirm-actions">
+      <button type="button" id="ro-export"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg> Export first</button>
+      <span class="spacer"></span>
+      <button type="button" id="ro-cancel">Keep it</button>
+      <button type="button" id="ro-delete" class="danger">Turn off and delete</button>
+    </div>
   </dialog>
 
   <script src="app.js"></script>

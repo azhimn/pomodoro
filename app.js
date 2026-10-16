@@ -5,6 +5,9 @@ const DEFAULTS = {
   cycle: 4,
   showTodos: false,
   autoStart: false,
+  dailyReset: true,
+  notify: false,
+  report: true,
   timer: { weight: '300', italic: false, underline: false },
   font: 'system-ui, sans-serif',
   fontCustom: '',
@@ -28,7 +31,10 @@ const settings = { ...DEFAULTS, ...saved };
 for (const k in DEFAULTS) if (typeof DEFAULTS[k] === 'object') settings[k] = { ...DEFAULTS[k], ...saved[k] };
 
 // endsAt set = running. left = ms remaining while paused; null = step untouched (full length).
-const state = { idx: 0, endsAt: null, left: null, ...load('pomo.state', {}) };
+// runFrom = when the current running stretch began (for the report). day = local date the timer last moved.
+const state = { idx: 0, endsAt: null, left: null, runFrom: null, day: null, ...load('pomo.state', {}) };
+// sv-SE formats dates as YYYY-MM-DD in local time.
+const dayKey = (t = Date.now()) => new Date(t).toLocaleDateString('sv-SE');
 
 // idx counts steps forever: W B W B ... W LB | W B ...
 function stepOf(idx, n = settings.cycle) {
@@ -122,21 +128,70 @@ function stopAlarm() {
   alarmBus = null;
 }
 
+// ---- Report data: { 'YYYY-MM-DD': { work, break, pomos, cycles } }, times in ms ----
+let stats = load('pomo.stats', {});
+if (typeof stats !== 'object' || Array.isArray(stats) || !stats) stats = {};
+const STAT_KEYS = ['work', 'break', 'pomos', 'cycles'];
+// shortcut: a stretch that crosses midnight is credited to the day it ended; split it if per-day accuracy matters.
+function credit(kind, ms, end, finished) {
+  if (!settings.report || !(ms > 0)) return;
+  const d = stats[dayKey(end)] ??= { work: 0, break: 0, pomos: 0, cycles: 0 };
+  d[kind === 'work' ? 'work' : 'break'] += Math.min(ms, durMs(kind));
+  if (finished && kind === 'work') d.pomos++;
+  if (finished && kind === 'long') d.cycles++;
+  save('pomo.stats', stats);
+}
+// Credit the running stretch so far (pause, skip).
+function creditRun(now = Date.now()) {
+  if (state.endsAt && state.runFrom) credit(stepOf(state.idx).kind, now - state.runFrom, now, false);
+}
+
+// New day and the timer is idle: start over at the top of a cycle.
+function dailyReset() {
+  const today = dayKey();
+  if (state.day === today || state.endsAt) return;
+  if (settings.dailyReset && state.day) setState({ idx: 0, left: null, day: today });
+  else setState({ day: today });
+}
+
+// Only when the user isn't looking at this tab; the alarm covers the rest.
+function notify(endedKind, nextKind) {
+  if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible' && document.hasFocus()) return;
+  const n = new Notification(`${STEPS[endedKind]} finished`, {
+    body: settings.autoStart ? `${STEPS[nextKind]} has started.` : `Up next: ${STEPS[nextKind]}.`,
+    tag: 'pomodoro-step', silent: true,
+  });
+  n.onclick = () => { focus(); n.close(); };
+}
+
 // ---- Actions ----
 function toggle() {
   click(state.endsAt ? settings.sound.pause : settings.sound.resume);
-  if (state.endsAt) setState({ endsAt: null, left: remaining() });
-  else setState({ endsAt: Date.now() + remaining(), left: null });
+  if (state.endsAt) {
+    creditRun();
+    setState({ endsAt: null, left: remaining(), runFrom: null });
+  } else {
+    dailyReset();
+    setState({ endsAt: Date.now() + remaining(), left: null, runFrom: Date.now(), day: dayKey() });
+  }
 }
 function jump(delta) {
   click(settings.sound.skip);
+  creditRun();
   const idx = Math.max(0, state.idx + delta);
-  setState({ idx, endsAt: state.endsAt && Date.now() + durMs(stepOf(idx).kind), left: null });
+  setState({ idx, endsAt: state.endsAt && Date.now() + durMs(stepOf(idx).kind), left: null, runFrom: state.endsAt && Date.now() });
 }
 function finish(sound) {
-  if (sound) alarm(settings[stepOf(state.idx).kind].hz);
-  const idx = state.idx + 1;
-  setState({ idx, endsAt: settings.autoStart ? Date.now() + durMs(stepOf(idx).kind) : null, left: null });
+  const kind = stepOf(state.idx).kind;
+  if (state.runFrom) credit(kind, state.endsAt - state.runFrom, state.endsAt, true);
+  if (sound) alarm(settings[kind].hz);
+  const newDay = settings.dailyReset && state.day && state.day !== dayKey();
+  const idx = newDay ? 0 : state.idx + 1;
+  const auto = settings.autoStart;
+  setState({ idx, endsAt: auto ? Date.now() + durMs(stepOf(idx).kind) : null, left: null, runFrom: auto ? Date.now() : null, day: dayKey() });
+  if (sound) notify(kind, stepOf(idx).kind);
+  if ($('#report').open) renderReport();
 }
 
 $('#toggle').addEventListener('click', toggle);
@@ -145,7 +200,7 @@ $('#next').addEventListener('click', () => jump(1));
 addEventListener('pointerdown', stopAlarm);
 
 addEventListener('keydown', e => {
-  if (e.target.matches('input, textarea') || $('#settings').open) return;
+  if (e.target.matches('input, textarea') || $('dialog[open]')) return;
   if (e.code === 'Space') { e.preventDefault(); stopAlarm(); toggle(); }
   else if (e.key === 'ArrowLeft') jump(-1);
   else if (e.key === 'ArrowRight') jump(1);
@@ -181,16 +236,31 @@ $('#open-settings').addEventListener('click', () => {
   dialog.showModal();
 });
 // Close on backdrop click. Track pointerdown too, so a text drag that ends outside doesn't close it.
-let downOnBackdrop = false;
-dialog.addEventListener('pointerdown', e => { downOnBackdrop = e.target === dialog; });
-dialog.addEventListener('click', e => { if (downOnBackdrop && e.target === dialog) dialog.close(); });
+for (const d of document.querySelectorAll('dialog')) {
+  let downOnBackdrop = false;
+  d.addEventListener('pointerdown', e => { downOnBackdrop = e.target === d; });
+  d.addEventListener('click', e => { if (downOnBackdrop && e.target === d) d.close(); });
+}
 form.addEventListener('input', e => {
   const el = e.target;
   if (!el.name || !el.checkValidity()) return;
+  if (el.name === 'notify' || el.name === 'report') return; // handled below: they need permission / confirmation
   setField(el, valueOf(el));
   if (el.type === 'range') showRange(el);
   save('pomo.settings', settings);
   render();
+});
+
+// Notifications need browser permission, asked only when the switch is turned on.
+$('#f-notify').addEventListener('change', async e => {
+  const on = e.target.checked;
+  if (on && !('Notification' in window)) { e.target.checked = false; return alert('This browser does not support notifications.'); }
+  if (on && Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') {
+    e.target.checked = false;
+    return alert('Notifications are blocked for this page. Allow them in your browser\'s site settings, then try again. (Browsers only allow them on https:// or localhost.)');
+  }
+  settings.notify = on;
+  save('pomo.settings', settings);
 });
 // Preview a volume when the slider is released.
 form.addEventListener('change', e => {
@@ -221,7 +291,7 @@ function importSettings(obj) {
   for (const el of fields()) {
     const [k, f] = el.name.split('.');
     const v = f ? obj?.[k]?.[f] : obj?.[k];
-    if (v == null || typeof v === 'object') continue;
+    if (v == null || typeof v === 'object' || el.hasAttribute('data-noimport')) continue;
     if (el.type === 'checkbox') {
       if (typeof v !== 'boolean') continue;
       el.checked = v;
@@ -261,9 +331,10 @@ function confirmable(btn, action) {
   });
 }
 confirmable($('#settings-reset'), () => {
-  const showTodos = settings.showTodos; // UI state, not a preference
+  // Kept: to-do visibility (UI state), and the report switch (turning it off must go through its confirmation).
+  const { showTodos, report } = settings;
   for (const k in DEFAULTS) settings[k] = typeof DEFAULTS[k] === 'object' ? { ...DEFAULTS[k] } : DEFAULTS[k];
-  settings.showTodos = showTodos;
+  Object.assign(settings, { showTodos, report });
   save('pomo.settings', settings);
   fillForm();
   render();
@@ -378,6 +449,128 @@ onFile('#todo-file', text => {
   addTodos(items); // append, never overwrite
 });
 
+// ---- Personal report ----
+const fmtDur = ms => {
+  const m = Math.round(ms / 60000);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ''}`.trim();
+};
+const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+const shiftDay = (key, n) => { const d = new Date(`${key}T12:00`); d.setDate(d.getDate() + n); return dayKey(d); };
+// A day counts toward the streak once it has a finished pomodoro. Today without one yet doesn't break it.
+function streaks(data, today = dayKey()) {
+  const active = d => data[d]?.pomos > 0;
+  let current = 0, day = active(today) ? today : shiftDay(today, -1);
+  while (active(day)) { current++; day = shiftDay(day, -1); }
+  let best = 0, run = 0, prev = null;
+  for (const d of Object.keys(data).filter(active).sort()) {
+    run = prev && shiftDay(prev, 1) === d ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = d;
+  }
+  return { current, best: Math.max(best, current) };
+}
+
+function renderReport() {
+  const today = dayKey(), t = stats[today] ?? { work: 0, break: 0, pomos: 0 };
+  const sum = k => Object.values(stats).reduce((a, d) => a + (d[k] || 0), 0);
+  const { current, best } = streaks(stats, today);
+  $('#r-streak').textContent = current;
+  $('#r-streak-note').textContent =
+    current === 0 ? 'Finish a pomodoro today to start a streak.'
+    : !(t.pomos > 0) ? 'Finish a pomodoro today to keep it going.'
+    : current >= best && current > 1 ? 'Your longest yet.' : `Best so far: ${plural(best, 'day')}.`;
+  $('#r-today-work').textContent = fmtDur(t.work);
+  $('#r-today-break').textContent = fmtDur(t.break);
+  $('#r-today-pomos').textContent = t.pomos;
+  $('#r-all-work').textContent = fmtDur(sum('work'));
+  $('#r-all-break').textContent = fmtDur(sum('break'));
+  $('#r-all-pomos').textContent = sum('pomos');
+  $('#r-all-cycles').textContent = sum('cycles');
+  $('#r-best').textContent = plural(best, 'day');
+  $('#r-days').textContent = Object.values(stats).filter(d => d.pomos > 0).length;
+
+  // 7 bars, heights relative to the busiest day (min 1 h scale so a 5-minute day doesn't fill the chart).
+  const days = [...Array(7)].map((_, i) => shiftDay(today, i - 6));
+  const max = Math.max(3600000, ...days.map(d => stats[d]?.work || 0));
+  const bars = $('#r-bars');
+  bars.replaceChildren(...days.map(d => {
+    const ms = stats[d]?.work || 0;
+    const name = new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short' });
+    const full = d === today ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    const col = document.createElement('div');
+    col.className = 'bar' + (d === today ? ' today' : '');
+    col.tabIndex = 0;
+    col.ariaLabel = `${full}: ${fmtDur(ms)} focus`;
+    col.dataset.readout = `${full} · ${fmtDur(ms)}`;
+    col.innerHTML = '<span class="track"><span class="fill"></span></span><span class="day"></span>';
+    col.querySelector('.fill').style.height = ms ? `max(4px, ${(ms / max) * 100}%)` : '0';
+    col.querySelector('.day').textContent = d === today ? 'Today' : name;
+    return col;
+  }));
+  const total = days.reduce((a, d) => a + (stats[d]?.work || 0), 0);
+  const idle = `${fmtDur(total)} this week`;
+  const readout = $('#r-readout');
+  readout.textContent = idle;
+  bars.onpointerover = bars.onfocusin = e => { const b = e.target.closest('.bar'); if (b) readout.textContent = b.dataset.readout; };
+  bars.onpointerleave = bars.onfocusout = () => { readout.textContent = idle; };
+}
+
+function syncReportUI() {
+  $('#open-report').hidden = !settings.report;
+  $('#report-export').disabled = $('#report-import').disabled = !settings.report;
+}
+$('#open-report').addEventListener('click', () => { renderReport(); $('#report').showModal(); });
+
+$('#report-export').addEventListener('click', () =>
+  download(`pomodoro-report-${dayKey()}.json`, 'application/json', JSON.stringify({ pomodoroReport: 1, days: stats }, null, 2)));
+$('#report-import').addEventListener('click', () => $('#report-file').click());
+// Untrusted file: only YYYY-MM-DD keys with finite, non-negative numbers survive. Merge keeps the larger value per field,
+// so importing the same file twice changes nothing.
+function mergeReport(obj) {
+  const days = obj?.days;
+  if (typeof days !== 'object' || !days || Array.isArray(days)) return 0;
+  let n = 0;
+  for (const [key, d] of Object.entries(days)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || typeof d !== 'object' || !d) continue;
+    const cur = stats[key] ??= { work: 0, break: 0, pomos: 0, cycles: 0 };
+    for (const k of STAT_KEYS) {
+      const v = d[k];
+      if (Number.isFinite(v) && v >= 0 && v < 864e5 * 400) cur[k] = Math.max(cur[k], k === 'pomos' || k === 'cycles' ? Math.floor(v) : v);
+    }
+    n++;
+  }
+  return n;
+}
+onFile('#report-file', text => {
+  let obj;
+  try { obj = JSON.parse(text); } catch { return alert('That file is not valid JSON.'); }
+  const n = mergeReport(obj);
+  if (!n) return alert('No report days found in that file.');
+  save('pomo.stats', stats);
+  alert(`Imported ${plural(n, 'day')} into your report.`);
+});
+
+// Turning the report off deletes its data, so it asks first when there is any.
+const reportOff = $('#report-off');
+function setReport(on) {
+  settings.report = on;
+  if (!on) { stats = {}; localStorage.removeItem('pomo.stats'); }
+  save('pomo.settings', settings);
+  $('#f-report').checked = on;
+  syncReportUI();
+}
+$('#f-report').addEventListener('change', e => {
+  if (e.target.checked) return setReport(true);
+  const days = Object.keys(stats).length;
+  if (!days) return setReport(false);
+  e.target.checked = true; // stays on until confirmed
+  $('#ro-days').textContent = plural(days, 'day');
+  reportOff.showModal();
+});
+$('#ro-export').addEventListener('click', () => $('#report-export').click());
+$('#ro-cancel').addEventListener('click', () => reportOff.close());
+$('#ro-delete').addEventListener('click', () => { setReport(false); reportOff.close(); });
+
 // ---- Self-check for the sequence logic (failures show in the console) ----
 function selfTest() {
   const seq = [...Array(10)].map((_, i) => stepOf(i, 4).kind[0]).join('');
@@ -385,20 +578,33 @@ function selfTest() {
   console.assert(stepOf(7, 4).pos === 4 && stepOf(8, 4).cycle === 2, 'pos/cycle');
   console.assert(stepOf(1, 1).kind === 'long' && stepOf(2, 1).cycle === 2, 'cycle of 1');
   console.assert(textOn('#ffffff').includes('#1c1917') && textOn('#000000').includes('#fff)'), 'textOn');
+  const st = { '2026-10-13': { pomos: 1 }, '2026-10-14': { pomos: 2 }, '2026-10-15': { pomos: 1 }, '2026-10-10': { pomos: 1 } };
+  console.assert(JSON.stringify(streaks(st, '2026-10-16')) === '{"current":3,"best":3}', 'streak, today not yet done', streaks(st, '2026-10-16'));
+  console.assert(streaks(st, '2026-10-17').current === 0, 'streak broken after a missed day');
+  console.assert(shiftDay('2026-03-01', -1) === '2026-02-28' && shiftDay('2026-12-31', 1) === '2027-01-01', 'shiftDay');
+  console.assert(fmtDur(90 * 60000) === '1 h 30 min' && fmtDur(60 * 60000) === '1 h' && fmtDur(0) === '0 min', 'fmtDur');
   const sample = [{ text: 'a — b', done: null }, { text: 'Write — report', done: '2026-10-16 14:32 · Work 3/4 · Cycle 2' }];
   console.assert(JSON.stringify(fromMarkdown(toMarkdown(sample))) === JSON.stringify(sample), 'markdown round-trip');
 }
 selfTest();
 
-// Step ended while the page was closed: catch up quietly. Auto-start replays the steps that passed; otherwise wait.
+// Step ended while the page was closed: catch up quietly. That step counts in the report; with auto-start,
+// the steps after it are replayed on the clock but not credited (nobody was necessarily there).
 if (state.endsAt && remaining() <= 0) {
   if (settings.autoStart) {
+    const kind = stepOf(state.idx).kind;
+    if (state.runFrom) credit(kind, state.endsAt - state.runFrom, state.endsAt, true);
     let { idx, endsAt } = state;
     while (endsAt <= Date.now()) endsAt += durMs(stepOf(++idx).kind);
-    setState({ idx, endsAt });
+    setState({ idx, endsAt, runFrom: endsAt - durMs(stepOf(idx).kind), day: dayKey() });
   } else finish(false);
 }
+dailyReset();
+syncReportUI();
 render();
 renderTodos();
 renderTodoPanel();
-setInterval(() => (state.endsAt && remaining() <= 0 ? finish(true) : render()), 250);
+setInterval(() => {
+  if (state.endsAt && remaining() <= 0) finish(true);
+  else { dailyReset(); render(); }
+}, 250);
