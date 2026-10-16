@@ -9,6 +9,7 @@ const DEFAULTS = {
   font: 'system-ui, sans-serif',
   fontCustom: '',
   sound: { resume: 600, pause: 500, skip: 400 },
+  volume: { master: 80, alarm: 100, button: 100 }, // percent
   work: { min: 25, sec: 0, color: '#a65d4e', hz: 880 },
   break: { min: 5, sec: 0, color: '#47705a', hz: 660 },
   long: { min: 20, sec: 0, color: '#4f6488', hz: 520 },
@@ -59,7 +60,8 @@ function render() {
   const time = `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
   const running = !!state.endsAt;
   $('#time').textContent = time;
-  $('#step').textContent = label(s);
+  $('#step-name').textContent = STEPS[s.kind];
+  $('#step').textContent = `Pair ${s.pos}/${settings.cycle} · Cycle ${s.cycle}`;
   document.title = `${time} · ${STEPS[s.kind]}`;
   // Set on <html> so the page scrollbar can take its tint from currentColor too.
   const root = document.documentElement.style;
@@ -100,9 +102,11 @@ function beep(dest, hz, at, len, type, vol) {
   o.start(at);
   o.stop(at + len);
 }
+// Squared so the sliders feel even to the ear (perceived loudness isn't linear in gain).
+const gainFor = kind => (settings.volume.master / 100) ** 2 * (settings.volume[kind] / 100) ** 2;
 function click(hz) {
   audio();
-  beep(ctx.destination, hz, ctx.currentTime, 0.04, 'sine', 0.05);
+  beep(ctx.destination, hz, ctx.currentTime, 0.04, 'sine', 0.05 * gainFor('button'));
 }
 function alarm(hz) {
   stopAlarm();
@@ -111,7 +115,7 @@ function alarm(hz) {
   alarmBus.connect(ctx.destination);
   for (let group = 0; group < 4; group++)
     for (let b = 0; b < 4; b++)
-      beep(alarmBus, hz, ctx.currentTime + group + b * 0.12, 0.07, 'square', 0.15);
+      beep(alarmBus, hz, ctx.currentTime + group + b * 0.12, 0.07, 'square', 0.15 * gainFor('alarm'));
 }
 function stopAlarm() {
   alarmBus?.disconnect();
@@ -152,7 +156,12 @@ addEventListener('keyup', e => { if (e.code === 'Space' && e.target.matches('but
 // ---- Settings dialog ----
 const form = $('#settings form');
 const fields = () => form.querySelectorAll('[name]');
-const valueOf = el => el.type === 'checkbox' ? el.checked : el.type === 'number' ? Number(el.value) : el.value;
+const valueOf = el => el.type === 'checkbox' ? el.checked : el.type === 'number' || el.type === 'range' ? Number(el.value) : el.value;
+// Range readout and the filled part of its track.
+function showRange(el) {
+  el.nextElementSibling.textContent = `${el.value}%`;
+  el.style.setProperty('--fill', `${el.value}%`);
+}
 function setField(el, v) {
   const [k, f] = el.name.split('.');
   if (f) settings[k][f] = v; else settings[k] = v;
@@ -162,6 +171,7 @@ function fillForm() {
     const [k, f] = el.name.split('.');
     const v = f ? settings[k][f] : settings[k];
     if (el.type === 'checkbox') el.checked = v; else el.value = v;
+    if (el.type === 'range') showRange(el);
   }
 }
 
@@ -178,8 +188,15 @@ form.addEventListener('input', e => {
   const el = e.target;
   if (!el.name || !el.checkValidity()) return;
   setField(el, valueOf(el));
+  if (el.type === 'range') showRange(el);
   save('pomo.settings', settings);
   render();
+});
+// Preview a volume when the slider is released.
+form.addEventListener('change', e => {
+  const name = e.target.name;
+  if (name === 'volume.button') click(settings.sound.resume);
+  else if (name === 'volume.alarm' || name === 'volume.master') { stopAlarm(); audio(); alarmBus = ctx.createGain(); alarmBus.connect(ctx.destination); for (let b = 0; b < 2; b++) beep(alarmBus, settings.work.hz, ctx.currentTime + b * 0.12, 0.07, 'square', 0.15 * gainFor('alarm')); }
 });
 
 function download(name, type, text) {
@@ -228,13 +245,14 @@ onFile('#settings-file', text => {
 
 // Two-step confirm: the first press arms the button for 4 s, the second runs the action.
 function confirmable(btn, action) {
-  const text = btn.textContent;
+  const lbl = btn.querySelector('.lbl') ?? btn; // keep any icon, swap only the text
+  const text = lbl.textContent;
   let timer;
-  const disarm = () => { clearTimeout(timer); btn.classList.remove('armed'); btn.textContent = text; };
+  const disarm = () => { clearTimeout(timer); btn.classList.remove('armed'); lbl.textContent = text; };
   btn.addEventListener('click', () => {
     if (!btn.classList.contains('armed')) {
       btn.classList.add('armed');
-      btn.textContent = 'Confirm';
+      lbl.textContent = 'Confirm';
       timer = setTimeout(disarm, 4000);
       return;
     }
@@ -320,9 +338,24 @@ list.addEventListener('click', e => {
   const btn = e.target.closest('button');
   if (btn) deleteTodos(t => t === btn.closest('li').todo);
 });
-for (const btn of document.querySelectorAll('[data-delete]')) {
-  const kind = btn.dataset.delete;
-  confirmable(btn, () => deleteTodos(t => kind === 'all' || (kind === 'done') === (t.done != null)));
+// Task options menu (popover: light-dismiss and Esc for free; positioned under its button by hand).
+const menu = $('#todo-menu'), menuBtn = $('#todo-menu-btn');
+const matcher = kind => t => kind === 'all' || (kind === 'done') === (t.done != null);
+menu.addEventListener('beforetoggle', e => {
+  if (e.newState !== 'open') return;
+  const r = menuBtn.getBoundingClientRect();
+  menu.style.right = `${innerWidth - r.right}px`;
+  menu.style.top = `${r.bottom + 6}px`;
+  for (const b of menu.querySelectorAll('[data-delete]')) b.disabled = !todos.some(matcher(b.dataset.delete));
+});
+menu.addEventListener('toggle', e => {
+  if (e.newState !== 'open') return;
+  // Flip above the button if it would run off the bottom of the screen.
+  const r = menuBtn.getBoundingClientRect(), h = menu.offsetHeight;
+  if (r.bottom + 6 + h > innerHeight) menu.style.top = `${Math.max(6, r.top - 6 - h)}px`;
+});
+for (const btn of menu.querySelectorAll('[data-delete]')) {
+  confirmable(btn, () => { deleteTodos(matcher(btn.dataset.delete)); menu.hidePopover(); });
 }
 
 const toMarkdown = items => items.map(t => `- [${t.done != null ? 'x' : ' '}] ${t.text}${t.done ? ' — ' + t.done : ''}`).join('\n') + '\n';

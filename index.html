@@ -18,8 +18,9 @@
   </header>
 
   <main>
+    <div id="step-name">Work</div>
     <div id="time" role="timer" aria-live="off">25:00</div>
-    <div id="step">Work 1/4 · Cycle 1</div>
+    <div id="step">Pair 1/4 · Cycle 1</div>
     <nav class="controls">
       <button id="prev" class="icon" aria-label="Previous step">
         <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208,47.88V208.12a16,16,0,0,1-24.43,13.43L64,146.77V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0v69.23L183.57,34.45A15.95,15.95,0,0,1,208,47.88Z"/></svg>
@@ -35,7 +36,16 @@
 
     <section id="todos" aria-label="To-do list" inert>
       <div class="todos-inner">
-        <form id="todo-add"><input name="text" placeholder="Add a task" maxlength="200" required aria-label="New task" autocomplete="off"></form>
+        <div class="todo-bar">
+          <form id="todo-add"><input name="text" placeholder="Add a task" maxlength="200" required aria-label="New task" autocomplete="off"></form>
+          <button id="todo-menu-btn" class="icon" popovertarget="todo-menu" aria-label="Task options"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg></button>
+        </div>
+        <div id="todo-menu" popover aria-label="Task options">
+          <button type="button" data-delete="done"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete completed</span></button>
+          <button type="button" data-delete="open"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete incomplete</span></button>
+          <button type="button" data-delete="all"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete all</span></button>
+          <p class="menu-hint">Press twice to confirm</p>
+        </div>
         <ul id="todo-list"></ul>
       </div>
     </section>
@@ -79,6 +89,21 @@
 
       <section class="group" aria-labelledby="g-sound">
         <h3 id="g-sound">Sound</h3>
+        <p class="sub" id="g-vol">Volume</p>
+        <div class="rows" aria-labelledby="g-vol" role="group">
+          <div class="row">
+            <label class="row-label" for="f-vol-master">Master</label>
+            <div class="ctrl range"><input type="range" id="f-vol-master" name="volume.master" min="0" max="100" step="5"><output for="f-vol-master"></output></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-vol-alarm">Alarm</label>
+            <div class="ctrl range"><input type="range" id="f-vol-alarm" name="volume.alarm" min="0" max="100" step="5"><output for="f-vol-alarm"></output></div>
+          </div>
+          <div class="row">
+            <label class="row-label" for="f-vol-button">Button clicks</label>
+            <div class="ctrl range"><input type="range" id="f-vol-button" name="volume.button" min="0" max="100" step="5"><output for="f-vol-button"></output></div>
+          </div>
+        </div>
         <p class="sub" id="g-alarm">Alarm when a step ends</p>
         <div class="rows" aria-labelledby="g-alarm" role="group">
           <div class="row" role="group" aria-labelledby="r-hz-work">
@@ -189,14 +214,6 @@
             <div class="ctrl">
               <button type="button" id="settings-export"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z"/></svg> Export</button>
               <button type="button" id="settings-import"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0ZM88,80h32v64a8,8,0,0,0,16,0V80h32a8,8,0,0,0,5.66-13.66l-40-40a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,88,80Z"/></svg> Import</button>
-            </div>
-          </div>
-          <div class="row stack">
-            <span class="row-label">Delete tasks<span class="hint">Press twice to confirm</span></span>
-            <div class="ctrl">
-              <button type="button" class="confirm" data-delete="done">Completed</button>
-              <button type="button" class="confirm" data-delete="open">Incomplete</button>
-              <button type="button" class="confirm" data-delete="all">All</button>
             </div>
           </div>
           <div class="row stack">

@@ -51,7 +51,8 @@ main {
   text-underline-offset: .03em;
 }
 
-#step { font-size: 1.15rem; letter-spacing: .01em; opacity: .9; margin-top: .75rem; }
+#step-name { font-size: 1.35rem; font-weight: 500; letter-spacing: .01em; margin-bottom: .5rem; }
+#step { font-size: 1.05rem; letter-spacing: .01em; opacity: .8; margin-top: .75rem; font-variant-numeric: tabular-nums; }
 
 .controls { display: flex; gap: 1.25rem; align-items: center; margin-top: 2.75rem; }
 
@@ -192,8 +193,32 @@ dialog input.switch:hover { background-color: #cdc2b6; }
 dialog input.switch:checked:hover { background-color: #657f60; }
 dialog input.switch:focus-visible { box-shadow: 0 0 0 3px rgb(150 130 110 / .25); }
 
-dialog .ctrl button.armed { background: #a4503f; color: #fff8f4; }
-dialog .ctrl button.armed:hover { background: #944635; }
+button.armed, dialog .ctrl button.armed { background: #a4503f; color: #fff8f4; }
+button.armed:hover, dialog .ctrl button.armed:hover { background: #944635; }
+
+/* Volume sliders: soft track with a filled part (--fill, set from JS) and a white knob. */
+.ctrl.range { gap: .6rem; }
+.ctrl.range output { width: 2.6rem; text-align: right; font-size: .85rem; color: #5a534c; font-variant-numeric: tabular-nums; }
+dialog input[type=range] {
+  appearance: none; width: 9rem; height: 1.5rem; padding: 0; cursor: pointer;
+  background: transparent; --fill: 50%;
+}
+dialog input[type=range]:hover, dialog input[type=range]:focus { background: transparent; }
+dialog input[type=range]:focus { box-shadow: none; }
+dialog input[type=range]::-webkit-slider-runnable-track {
+  height: .35rem; border-radius: 1rem;
+  background: linear-gradient(#6f8a6a, #6f8a6a) 0 / var(--fill) 100% no-repeat, #d6ccc1;
+}
+dialog input[type=range]::-moz-range-track { height: .35rem; border-radius: 1rem; background: #d6ccc1; }
+dialog input[type=range]::-moz-range-progress { height: .35rem; border-radius: 1rem; background: #6f8a6a; }
+dialog input[type=range]::-webkit-slider-thumb {
+  appearance: none; width: 1.1rem; height: 1.1rem; margin-top: -.375rem; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgb(60 40 20 / .3); transition: scale .15s var(--ease);
+}
+dialog input[type=range]::-moz-range-thumb { width: 1.1rem; height: 1.1rem; border: none; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(60 40 20 / .3); }
+dialog input[type=range]:active::-webkit-slider-thumb { scale: 1.12; }
+dialog input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgb(150 130 110 / .35); }
+dialog input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgb(150 130 110 / .35); }
 
 dialog .close { background: #34302c; color: #f6f3ef; border: none; padding: .5rem 1.4rem; }
 dialog .close:hover { background: #4a443e; }
@@ -215,6 +240,31 @@ dialog .close:hover { background: #4a443e; }
 .todos-inner { min-height: 0; overflow: hidden; padding: 4px; } /* padding keeps the focus ring from being clipped */
 #todos:not(.open) .todos-inner { padding-block: 0; }
 .todos-inner { transition: padding .45s cubic-bezier(.25, 1, .5, 1); }
+/* Input plus the options button on one line. */
+.todo-bar { display: flex; gap: .4rem; align-items: center; }
+#todo-add { flex: 1; }
+#todo-menu-btn svg { width: 1.25rem; height: 1.25rem; }
+
+#todo-menu {
+  inset: auto; margin: 0; position: fixed; /* top/right set from JS */
+  min-width: 13rem; padding: .35rem; border: none; border-radius: .9rem;
+  background: #f6f3ef; color: #34302c;
+  box-shadow: 0 10px 30px rgb(30 20 10 / .2);
+  opacity: 0; translate: 0 -.3rem;
+  transition: opacity .18s ease-out, translate .25s var(--ease), overlay .25s allow-discrete, display .25s allow-discrete;
+}
+#todo-menu:popover-open { opacity: 1; translate: 0; }
+@starting-style { #todo-menu:popover-open { opacity: 0; translate: 0 -.3rem; } }
+#todo-menu button {
+  display: flex; align-items: center; gap: .6rem; width: 100%;
+  border: none; border-radius: .6rem; padding: .55rem .7rem; text-align: left; font-size: .9rem;
+}
+#todo-menu button:hover { background: #ece7e1; }
+#todo-menu button:disabled { opacity: .4; cursor: default; background: none; }
+#todo-menu button.armed { background: #a4503f; color: #fff8f4; }
+#todo-menu svg { width: 1rem; height: 1rem; flex: none; }
+.menu-hint { margin: .3rem .7rem .25rem; font-size: .75rem; color: #6b635b; }
+
 #todo-add input {
   width: 100%; font: inherit; color: inherit; padding: .6rem .9rem;
   background: color-mix(in oklab, currentColor 10%, transparent);
