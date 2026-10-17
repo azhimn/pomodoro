@@ -30,7 +30,11 @@ The report shows your streak, focus and break time, pomodori finished and tasks 
 
 ### Settings
 
-You can change colors, the font, the timer's weight and style, animation speed (or turn animations off), alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
+You can change colors, the font, the timer's weight and style, animation speed (or turn animations off), alarm and click pitches, and separate volumes for the alarm and clicks. Keyboard shortcuts are yours to change too. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults.
+
+### Help
+
+The ? button opens a short guide to the Pomodoro Technique and to this timer. It also lists your keyboard shortcuts and explains how your data is kept. On a phone, Help, Settings and the report open full screen.
 
 ## Keyboard
 
@@ -47,7 +51,7 @@ You can change colors, the font, the timer's weight and style, animation speed (
 | H | Help |
 | ? | Keyboard shortcuts |
 
-Hover over any button to see its name and shortcut.
+These are the defaults. In Settings you can remove any of them or record new ones, including combinations like Ctrl + Alt + M, and give an action as many keys as you like. Hover over any button to see its name and shortcut.
 
 ## Run it yourself
 

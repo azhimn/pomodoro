@@ -11,6 +11,12 @@ const DEFAULTS = {
   report: true,
   timer: { weight: '300', italic: false, underline: false },
   motion: 100, // animation speed in %, 0 = off
+  // Shortcut ids: optional Ctrl+/Alt+/Meta+/Shift+ prefixes, then the key ("k", "Space", "ArrowLeft", "?").
+  keys: {
+    toggle: ['Space', 'k', 's'], prev: ['ArrowLeft', 'j', 'a'], next: ['ArrowRight', 'l', 'd'],
+    plus: ['+', '='], minus: ['-'], reset: ['0'], tasks: ['t'],
+    settings: ['i'], report: ['r'], help: ['h'], shortcuts: ['?'],
+  },
   font: 'system-ui, sans-serif',
   fontCustom: '',
   sound: { resume: 600, pause: 500, skip: 400 },
@@ -35,6 +41,8 @@ for (const k in DEFAULTS) if (typeof DEFAULTS[k] === 'object') settings[k] = { .
 // v2 raised the click ceiling to alarm loudness; scale older saved click volumes so they sound the same as before.
 if (saved.volume && saved.ver !== 2) settings.volume.button = Math.round(settings.volume.button * 0.49 / 5) * 5;
 settings.ver = 2;
+// Own copies of every key list (the merge above shares DEFAULTS' arrays), falling back to defaults for bad data.
+settings.keys = Object.fromEntries(Object.keys(DEFAULTS.keys).map(a => [a, Array.isArray(settings.keys[a]) ? settings.keys[a].filter(k => typeof k === 'string') : [...DEFAULTS.keys[a]]]));
 // The speed was briefly a select storing a duration multiplier ('0.001' = off); convert it to the slider's percent.
 if (saved.animSpeed != null && saved.motion == null) settings.motion = +saved.animSpeed < 0.01 ? 0 : Math.min(200, Math.round(100 / saved.animSpeed / 25) * 25);
 delete settings.animSpeed;
@@ -72,14 +80,6 @@ function textOn(hex) {
 
 const $ = sel => document.querySelector(sel);
 
-// Hover hints: native title = the button's label, plus its shortcut. Also exposed as aria-keyshortcuts.
-const SHORTCUTS = { 'open-help': 'H', 'open-settings': 'I', 'open-report': 'R', 'toggle-todos': 'T', prev: 'J', next: 'L', toggle: 'K', 'plus-min': '+', 'minus-min': '-', 'reset-step': '0' };
-function hint(btn) {
-  const key = SHORTCUTS[btn.id];
-  const title = key ? `${btn.ariaLabel} (${key})` : btn.ariaLabel;
-  if (btn.title !== title) btn.title = title;
-  if (key) btn.setAttribute('aria-keyshortcuts', key);
-}
 
 // Favicon: the current step's icon (Phosphor fill) on its background color. Rebuilt only when either changes.
 const STEP_ICONS = {
@@ -285,40 +285,188 @@ $('#minus-min').addEventListener('click', () => addMinutes(-1));
 $('#reset-step').addEventListener('click', resetStep);
 addEventListener('pointerdown', stopAlarm);
 
-// Keyboard shortcuts (listed in the Help panel). Ignored while typing and with Ctrl/Alt/Cmd, so browser shortcuts still work.
+// ---- Keyboard shortcuts (editable in Settings, listed in Help) ----
 const typing = el => el.matches('textarea, select, input:not([type=checkbox], [type=range], [type=color], [type=file])');
 function toggleDialog(d, open) {
   if (d.open) return d.close();
   $('dialog[open]')?.close();
   open();
 }
+const ACTIONS = {
+  toggle: { label: 'Pause / continue', run: () => { stopAlarm(); toggle(); } },
+  prev: { label: 'Previous step', run: () => jump(-1) },
+  next: { label: 'Next step', run: () => jump(1) },
+  plus: { label: 'Add a minute', run: () => addMinutes(1) },
+  minus: { label: 'Take off a minute', run: () => addMinutes(-1) },
+  reset: { label: 'Restart this step', run: () => resetStep() },
+  tasks: { label: 'Show / hide tasks', run: () => {
+    if (settings.showTodos) $('#toggle-todos').click();
+    else { $('#toggle-todos').click(); $('#todo-add input').focus({ preventScroll: true }); }
+  } },
+  // Panel actions also work while a panel is open, so the same key closes it.
+  settings: { label: 'Open / close settings', panel: true, run: () => toggleDialog($('#settings'), () => $('#open-settings').click()) },
+  report: { label: 'Open / close your report', panel: true, run: () => settings.report && toggleDialog($('#report'), () => $('#open-report').click()) },
+  help: { label: 'Open / close help', panel: true, run: () => toggleDialog($('#help'), () => $('#open-help').click()) },
+  shortcuts: { label: 'Jump to these shortcuts', panel: true, run: () => toggleDialog($('#help'), () => { $('#open-help').click(); $('#g-keys').scrollIntoView({ block: 'start' }); }) },
+};
+// Keys the editor won't take: they're needed to move around and close things.
+const RESERVED = new Set(['Tab', 'Shift+Tab', 'Enter', 'Escape']);
+
+// One id per key press. Shifted symbols ("?", "+") are already in e.key, so Shift is only recorded for letters and named keys.
+function keyId(e) {
+  let k = e.key === ' ' ? 'Space' : e.key;
+  if (k.length === 1) k = k.toLowerCase();
+  const shift = e.shiftKey && (k.length > 1 || /\p{L}/u.test(k));
+  return (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (e.metaKey ? 'Meta+' : '') + (shift ? 'Shift+' : '') + k;
+}
+const KEY_NAMES = { Space: 'Space', ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Escape: 'Esc', Backspace: '⌫', Delete: 'Del', PageUp: 'PgUp', PageDown: 'PgDn' };
+function splitId(id) {
+  const m = id.match(/^((?:(?:Ctrl|Alt|Meta|Shift)\+)*)(.+)$/);
+  return { mods: m[1].split('+').filter(Boolean), key: m[2] };
+}
+const keyLabel = id => {
+  const { mods, key } = splitId(id);
+  return [...mods.map(m => (m === 'Meta' ? '⌘' : m)), KEY_NAMES[key] ?? (key.length === 1 ? key.toUpperCase() : key)].join(' + ');
+};
+const ariaKey = id => {
+  const { mods, key } = splitId(id);
+  return [...mods.map(m => (m === 'Ctrl' ? 'Control' : m)), key === '+' ? 'Plus' : key].join('+');
+};
+const actionFor = id => Object.keys(ACTIONS).find(a => settings.keys[a]?.includes(id));
+
+let recording = null; // { action, button } while the editor waits for a key
+let handledSpace = false;
 addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (recording) return; // the recorder below has it
   if (typing(e.target)) {
     if (e.key === 'Escape' && e.target.closest('#todos')) e.target.blur();
     return;
   }
-  const key = e.key.toLowerCase();
-  // Panel keys work everywhere, including inside the panels they close.
-  if (key === 'i') return toggleDialog($('#settings'), () => $('#open-settings').click());
-  if (key === 'r' && settings.report) return toggleDialog($('#report'), () => $('#open-report').click());
-  if (key === 'h') return toggleDialog($('#help'), () => $('#open-help').click());
-  if (key === '?') return toggleDialog($('#help'), () => { $('#open-help').click(); $('#g-keys').scrollIntoView({ block: 'start' }); });
-  if ($('dialog[open]')) return;
-  if (e.code === 'Space' || key === 'k' || key === 's') { e.preventDefault(); stopAlarm(); toggle(); }
-  else if (e.key === 'ArrowLeft' || key === 'j' || key === 'a') jump(-1);
-  else if (e.key === 'ArrowRight' || key === 'l' || key === 'd') jump(1);
-  else if (e.key === '+' || e.key === '=') addMinutes(1);
-  else if (e.key === '-' || e.key === '_') addMinutes(-1);
-  else if (e.key === '0') resetStep();
-  else if (key === 't') {
-    e.preventDefault(); // keep the "t" out of the input we're about to focus
-    if (settings.showTodos) $('#toggle-todos').click();
-    else { $('#toggle-todos').click(); $('#todo-add input').focus({ preventScroll: true }); }
-  }
+  const id = keyId(e);
+  // Space on a checkbox, switch, slider or picker keeps its normal job.
+  if (id === 'Space' && e.target.matches('input, select')) return;
+  const action = actionFor(id);
+  if (!action || (!ACTIONS[action].panel && $('dialog[open]'))) return;
+  e.preventDefault(); // also keeps a typed key out of a field the action focuses
+  handledSpace = id === 'Space';
+  ACTIONS[action].run();
 });
-// Stop a focused button from also firing its own click on Space release.
-addEventListener('keyup', e => { if (e.code === 'Space' && e.target.matches('button')) e.preventDefault(); });
+// A focused button would also "click" when Space is released; skip that if Space just ran a shortcut.
+addEventListener('keyup', e => { if (e.key === ' ' && handledSpace) { e.preventDefault(); handledSpace = false; } });
+
+// Hover hints: native title = the button's label plus its first shortcut; aria-keyshortcuts lists them all.
+const BUTTON_ACTIONS = { 'open-help': 'help', 'open-settings': 'settings', 'open-report': 'report', 'toggle-todos': 'tasks', prev: 'prev', next: 'next', toggle: 'toggle', 'plus-min': 'plus', 'minus-min': 'minus', 'reset-step': 'reset' };
+function hint(btn) {
+  const keys = settings.keys[BUTTON_ACTIONS[btn.id]] ?? [];
+  const title = keys.length ? `${btn.ariaLabel} (${keyLabel(keys[0])})` : btn.ariaLabel;
+  if (btn.title !== title) btn.title = title;
+  if (keys.length) btn.setAttribute('aria-keyshortcuts', keys.map(ariaKey).join(' '));
+  else btn.removeAttribute('aria-keyshortcuts');
+}
+const hintAll = () => document.querySelectorAll('button[aria-label]').forEach(hint);
+
+// Help: read-only list of the current keys.
+function renderHelpKeys() {
+  const kbds = keys => keys.map(k => `<kbd></kbd>`).join('');
+  const rows = Object.entries(ACTIONS).map(([a, { label }]) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="row-label"></span><span class="keys">${kbds(settings.keys[a])}</span>`;
+    row.querySelector('.row-label').textContent = label;
+    row.querySelectorAll('kbd').forEach((k, i) => { k.textContent = keyLabel(settings.keys[a][i]); });
+    if (!settings.keys[a].length) row.querySelector('.keys').innerHTML = '<span class="none">No key</span>';
+    return row;
+  });
+  const esc = document.createElement('div');
+  esc.className = 'row';
+  esc.innerHTML = '<span class="row-label">Leave the task box, close a panel or menu</span><span class="keys"><kbd>Esc</kbd></span>';
+  $('#help-keys').replaceChildren(...rows, esc);
+}
+
+// Settings: editor. Each key is a removable chip; + records a new one.
+function renderKeyEditor(note = {}) {
+  const rows = Object.entries(ACTIONS).map(([a, { label }]) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="row-label"><span class="name"></span><span class="hint" aria-live="polite"></span></span><div class="ctrl key-chips"></div>';
+    row.querySelector('.name').textContent = label;
+    row.querySelector('.hint').textContent = note[a] ?? '';
+    const chips = row.querySelector('.key-chips');
+    for (const id of settings.keys[a]) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = '<kbd></kbd><button type="button" class="chip-x"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg></button>';
+      chip.querySelector('kbd').textContent = keyLabel(id);
+      const x = chip.querySelector('button');
+      x.ariaLabel = x.title = `Remove ${keyLabel(id)} from ${label}`;
+      x.addEventListener('click', () => {
+        settings.keys[a] = settings.keys[a].filter(k => k !== id);
+        keysChanged();
+        renderKeyEditor();
+        $(`#key-editor [data-add="${a}"]`).focus();
+      });
+      chips.append(chip);
+    }
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'add-key';
+    add.dataset.add = a;
+    add.textContent = '+';
+    add.ariaLabel = add.title = `Add a key for ${label}`;
+    add.addEventListener('click', () => startRecording(a, add));
+    chips.append(add);
+    return row;
+  });
+  $('#key-editor').replaceChildren(...rows);
+}
+function startRecording(action, button) {
+  stopRecording();
+  recording = { action, button };
+  button.classList.add('recording');
+  button.textContent = 'Press a key…';
+}
+function stopRecording() {
+  if (!recording) return;
+  recording.button.classList.remove('recording');
+  recording.button.textContent = '+';
+  recording = null;
+}
+// Capture phase, so the key reaches the recorder before the shortcut handler or the dialog's Esc.
+addEventListener('keydown', e => {
+  if (!recording) return;
+  if (['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'Dead', 'Unidentified', 'Process'].includes(e.key)) return; // wait for the real key
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  const { action, button } = recording;
+  if (e.key === 'Escape') { stopRecording(); return button.focus(); }
+  const id = keyId(e);
+  const note = {};
+  if (RESERVED.has(id)) {
+    note[action] = `${keyLabel(id)} can't be used: it's needed to move around`;
+  } else {
+    const owner = actionFor(id);
+    if (owner && owner !== action) {
+      settings.keys[owner] = settings.keys[owner].filter(k => k !== id);
+      note[action] = `${keyLabel(id)} moved here from "${ACTIONS[owner].label}"`;
+      note[owner] = `${keyLabel(id)} moved to "${ACTIONS[action].label}"`;
+    }
+    if (!settings.keys[action].includes(id)) settings.keys[action].push(id);
+    keysChanged();
+  }
+  recording = null;
+  renderKeyEditor(note);
+  $(`#key-editor [data-add="${action}"]`).focus();
+}, true);
+// Clicking elsewhere or closing Settings stops a pending recording; Esc while recording must not close the panel.
+addEventListener('pointerdown', e => { if (recording && e.target !== recording.button) stopRecording(); });
+$('#settings').addEventListener('cancel', e => { if (recording) e.preventDefault(); });
+$('#settings').addEventListener('close', stopRecording);
+
+function keysChanged() {
+  save('pomo.settings', settings);
+  renderHelpKeys();
+  hintAll();
+}
 
 // ---- Settings dialog ----
 const form = $('#settings form');
@@ -429,7 +577,11 @@ function importSettings(obj) {
 onFile('#settings-file', text => {
   let obj;
   try { obj = JSON.parse(text); } catch { return alert('That file is not valid JSON.'); }
-  if (!importSettings(obj)) return alert('No usable settings found in that file.');
+  const keys = sanitizeKeys(obj?.keys);
+  if (keys) settings.keys = keys;
+  if (!importSettings(obj) && !keys) return alert('No usable settings found in that file.');
+  keysChanged();
+  renderKeyEditor();
   save('pomo.settings', settings);
   render();
 });
@@ -455,11 +607,28 @@ function confirmable(btn, action) {
     action();
   });
 }
+// Untrusted import: keep only known actions, short plain strings, no reserved keys, each key on one action.
+function sanitizeKeys(obj) {
+  if (typeof obj !== 'object' || !obj || Array.isArray(obj)) return null;
+  const out = {}, seen = new Set();
+  for (const a of Object.keys(ACTIONS)) {
+    const list = Array.isArray(obj[a]) ? obj[a] : settings.keys[a];
+    out[a] = list.filter(k => typeof k === 'string' && k.length > 0 && k.length <= 40 && !RESERVED.has(k) && !seen.has(k) && seen.add(k)).slice(0, 8);
+  }
+  return out;
+}
+confirmable($('#keys-reset'), () => {
+  settings.keys = structuredClone(DEFAULTS.keys);
+  keysChanged();
+  renderKeyEditor();
+});
 confirmable($('#settings-reset'), () => {
   // Kept: to-do visibility (UI state), and the report switch (turning it off must go through its confirmation).
   const { showTodos, report } = settings;
-  for (const k in DEFAULTS) settings[k] = typeof DEFAULTS[k] === 'object' ? { ...DEFAULTS[k] } : DEFAULTS[k];
+  for (const k in DEFAULTS) settings[k] = typeof DEFAULTS[k] === 'object' ? structuredClone(DEFAULTS[k]) : DEFAULTS[k];
   Object.assign(settings, { showTodos, report });
+  keysChanged();
+  renderKeyEditor();
   save('pomo.settings', settings);
   fillForm();
   render();
@@ -758,6 +927,8 @@ function selfTest() {
   console.assert(streaks(st, '2026-10-17').current === 0, 'streak broken after a missed day');
   console.assert(shiftDay('2026-03-01', -1) === '2026-02-28' && shiftDay('2026-12-31', 1) === '2027-01-01', 'shiftDay');
   console.assert(fmtDur(90 * 60000) === '1 h 30 min' && fmtDur(60 * 60000) === '1 h' && fmtDur(0) === '0 min', 'fmtDur');
+  console.assert(keyId({ key: 'K', shiftKey: true }) === 'Shift+k' && keyId({ key: '?', shiftKey: true }) === '?' && keyId({ key: ' ' }) === 'Space' && keyId({ key: 'p', ctrlKey: true, altKey: true }) === 'Ctrl+Alt+p', 'keyId');
+  console.assert(keyLabel('Ctrl+Shift+k') === 'Ctrl + Shift + K' && keyLabel('+') === '+' && keyLabel('Ctrl++') === 'Ctrl + +' && keyLabel('ArrowLeft') === '←', 'keyLabel');
   const sample = [{ text: 'a — b', done: null }, { text: 'Write — report', done: '2026-10-16 14:32 · Focus 3/4 · Cycle 2' }];
   console.assert(JSON.stringify(fromMarkdown(toMarkdown(sample))) === JSON.stringify(sample), 'markdown round-trip');
 }
@@ -776,7 +947,9 @@ if (state.endsAt && remaining() <= 0) {
 }
 dailyReset();
 syncReportUI();
-for (const b of document.querySelectorAll('button[aria-label]')) hint(b);
+renderKeyEditor();
+renderHelpKeys();
+hintAll();
 render();
 renderTodos();
 renderTodoPanel();

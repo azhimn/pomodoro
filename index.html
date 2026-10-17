@@ -238,6 +238,13 @@
         </div>
       </section>
 
+      <section class="group" aria-labelledby="g-keyedit">
+        <h3 id="g-keyedit">Keyboard shortcuts</h3>
+        <p class="note">An action can have several keys. Press + and then the key or combination you want. Esc cancels.</p>
+        <div class="rows" id="key-editor"></div>
+        <div class="key-reset"><button type="button" id="keys-reset">Reset shortcuts</button></div>
+      </section>
+
       <section class="group" aria-labelledby="g-data">
         <h3 id="g-data">Data</h3>
         <div class="rows">
@@ -313,25 +320,14 @@
           <li>When the alarm rings, take the break. The page changes color so you can tell at a glance which step you're in.</li>
           <li>Press play again for the next step. After four focus blocks you get a long break, and a new cycle starts.</li>
         </ol>
-        <p>Nearly done when the alarm goes off? Add a minute below the play button. Lengths, colors, sounds and auto-start are in Settings, and your streak and focus time are in the report.</p>
+        <p>Nearly done when the alarm goes off? Add a minute below the play button.</p>
+        <p>Find your streak and focus time in the report. Adjust lengths, colors, sounds, and auto-start in Settings.</p>
       </section>
 
       <section class="group" aria-labelledby="g-keys">
         <h3 id="g-keys">Keyboard shortcuts</h3>
-        <p class="note">Hover over any button to see its shortcut.</p>
-        <div class="rows">
-          <div class="row"><span class="row-label">Pause / continue</span><span class="keys"><kbd>Space</kbd><kbd>K</kbd><kbd>S</kbd></span></div>
-          <div class="row"><span class="row-label">Previous step</span><span class="keys"><kbd>←</kbd><kbd>J</kbd><kbd>A</kbd></span></div>
-          <div class="row"><span class="row-label">Next step</span><span class="keys"><kbd>→</kbd><kbd>L</kbd><kbd>D</kbd></span></div>
-          <div class="row"><span class="row-label">Add / take off a minute</span><span class="keys"><kbd>+</kbd><kbd>−</kbd></span></div>
-          <div class="row"><span class="row-label">Restart this step</span><span class="keys"><kbd>0</kbd></span></div>
-          <div class="row"><span class="row-label">Show / hide tasks (focuses the task box)</span><span class="keys"><kbd>T</kbd></span></div>
-          <div class="row"><span class="row-label">Leave the task box, close a panel or menu</span><span class="keys"><kbd>Esc</kbd></span></div>
-          <div class="row"><span class="row-label">Open / close settings</span><span class="keys"><kbd>I</kbd></span></div>
-          <div class="row"><span class="row-label">Open / close your report</span><span class="keys"><kbd>R</kbd></span></div>
-          <div class="row"><span class="row-label">Open / close this help</span><span class="keys"><kbd>H</kbd></span></div>
-          <div class="row"><span class="row-label">Jump to these shortcuts</span><span class="keys"><kbd>?</kbd></span></div>
-        </div>
+        <p class="note">Hover over any button to see its shortcut. You can change them in Settings.</p>
+        <div class="rows" id="help-keys"></div>
       </section>
 
       <section class="group about" aria-labelledby="g-about">

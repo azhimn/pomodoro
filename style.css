@@ -263,6 +263,21 @@ kbd {
   background: #f8f5f1; border-radius: .4rem; box-shadow: inset 0 -1px #ddd4ca;
 }
 #g-keys { scroll-margin-top: .5rem; }
+.keys .none, .key-chips .none { font-size: .8rem; color: #6b635b; }
+
+/* Shortcut editor: removable key chips and a + recorder per action. */
+.key-chips { gap: .3rem; }
+.chip { display: inline-flex; align-items: center; background: #f8f5f1; border-radius: .4rem; box-shadow: inset 0 -1px #ddd4ca; }
+.chip kbd { background: none; box-shadow: none; padding-right: .2rem; }
+dialog .chip .chip-x { display: grid; place-items: center; padding: .25rem .35rem .25rem .1rem; border: none; background: none; border-radius: 0 .4rem .4rem 0; opacity: .55; }
+dialog .chip .chip-x:hover { opacity: 1; background: #efe9e2; }
+dialog .chip .chip-x svg { width: .6rem; height: .6rem; }
+dialog .ctrl button.add-key { min-width: 1.9rem; padding: .15rem .5rem; font-size: .85rem; font-weight: 500; justify-content: center; }
+dialog .ctrl button.add-key.recording { background: #6f8a6a; color: #fff; font-weight: 400; font-size: .8rem; }
+.key-reset { display: flex; justify-content: flex-end; margin-top: .6rem; }
+dialog .key-reset button { font-size: .85rem; padding: .4rem .75rem; border: none; background: #ece7e1; }
+dialog .key-reset button:hover { background: #e3dcd4; }
+dialog .key-reset button.armed { background: #a4503f; color: #fff8f4; }
 
 /* Help: reading text. */
 .prose p, .prose li { font-size: .9rem; line-height: 1.6; color: #3f3a35; max-width: 62ch; }
