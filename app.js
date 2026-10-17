@@ -10,6 +10,7 @@ const DEFAULTS = {
   notify: false,
   report: true,
   timer: { weight: '300', italic: false, underline: false },
+  animSpeed: '1', // duration multiplier; 'Off' is 0.001 rather than 0 so animationend still fires
   font: 'system-ui, sans-serif',
   fontCustom: '',
   sound: { resume: 600, pause: 500, skip: 400 },
@@ -106,6 +107,7 @@ function render() {
   root.backgroundColor = bg;
   root.color = fg;
   root.fontFamily = settings.fontCustom || settings.font;
+  root.setProperty('--anim', settings.animSpeed);
   const t = $('#time').style;
   t.fontWeight = settings.timer.weight;
   t.fontStyle = settings.timer.italic ? 'italic' : 'normal';

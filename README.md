@@ -30,7 +30,7 @@ The report shows your streak, focus and break time, pomodori finished and tasks 
 
 ### Settings
 
-You can change colors, the font, the timer's weight and style, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
+You can change colors, the font, the timer's weight and style, animation speed, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
 
 ## Keyboard
 
