@@ -73,7 +73,7 @@ function textOn(hex) {
 const $ = sel => document.querySelector(sel);
 
 // Hover hints: native title = the button's label, plus its shortcut. Also exposed as aria-keyshortcuts.
-const SHORTCUTS = { 'open-settings': 'I', 'open-report': 'R', 'toggle-todos': 'T', prev: 'J', next: 'L', toggle: 'K', 'plus-min': '+', 'minus-min': '-', 'reset-step': '0' };
+const SHORTCUTS = { 'open-help': 'H', 'open-settings': 'I', 'open-report': 'R', 'toggle-todos': 'T', prev: 'J', next: 'L', toggle: 'K', 'plus-min': '+', 'minus-min': '-', 'reset-step': '0' };
 function hint(btn) {
   const key = SHORTCUTS[btn.id];
   const title = key ? `${btn.ariaLabel} (${key})` : btn.ariaLabel;
@@ -285,7 +285,7 @@ $('#minus-min').addEventListener('click', () => addMinutes(-1));
 $('#reset-step').addEventListener('click', resetStep);
 addEventListener('pointerdown', stopAlarm);
 
-// Keyboard shortcuts (listed in Settings > Keyboard). Ignored while typing and with Ctrl/Alt/Cmd, so browser shortcuts still work.
+// Keyboard shortcuts (listed in the Help panel). Ignored while typing and with Ctrl/Alt/Cmd, so browser shortcuts still work.
 const typing = el => el.matches('textarea, select, input:not([type=checkbox], [type=range], [type=color], [type=file])');
 function toggleDialog(d, open) {
   if (d.open) return d.close();
@@ -302,7 +302,8 @@ addEventListener('keydown', e => {
   // Panel keys work everywhere, including inside the panels they close.
   if (key === 'i') return toggleDialog($('#settings'), () => $('#open-settings').click());
   if (key === 'r' && settings.report) return toggleDialog($('#report'), () => $('#open-report').click());
-  if (key === '?') return toggleDialog($('#settings'), () => { $('#open-settings').click(); $('#g-keys').scrollIntoView({ block: 'start' }); });
+  if (key === 'h') return toggleDialog($('#help'), () => $('#open-help').click());
+  if (key === '?') return toggleDialog($('#help'), () => { $('#open-help').click(); $('#g-keys').scrollIntoView({ block: 'start' }); });
   if ($('dialog[open]')) return;
   if (e.code === 'Space' || key === 'k' || key === 's') { e.preventDefault(); stopAlarm(); toggle(); }
   else if (e.key === 'ArrowLeft' || key === 'j' || key === 'a') jump(-1);
@@ -685,6 +686,7 @@ function syncReportUI() {
   $('#report-delete').disabled = !Object.keys(stats).length;
 }
 $('#open-report').addEventListener('click', () => { renderReport(); $('#report').showModal(); });
+$('#open-help').addEventListener('click', () => { $('#help').showModal(); $('#help .dialog-body').scrollTop = 0; }); // after showModal: a closed dialog ignores scrollTop
 
 $('#report-export').addEventListener('click', () =>
   download(`pomodoro-report-${dayKey()}.json`, 'application/json', JSON.stringify({ pomodoroReport: 1, days: stats }, null, 2)));

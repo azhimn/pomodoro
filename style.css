@@ -264,7 +264,15 @@ kbd {
 }
 #g-keys { scroll-margin-top: .5rem; }
 
-/* Settings: privacy note and source link. */
+/* Help: reading text. */
+.prose p, .prose li { font-size: .9rem; line-height: 1.6; color: #3f3a35; max-width: 62ch; }
+.prose p { margin: 0 0 .75rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose ol { margin: 0 0 .75rem; padding-left: 1.3rem; display: grid; gap: .4rem; }
+.prose li::marker { color: #6b635b; font-variant-numeric: tabular-nums; }
+.note { margin: -.2rem 0 .6rem; font-size: .8rem; color: #6b635b; }
+
+/* Privacy note and source link. */
 .about p { margin: 0 0 .75rem; font-size: .85rem; line-height: 1.55; color: #4a443e; max-width: 60ch; }
 .about a {
   display: inline-flex; align-items: center; gap: .45rem; font-size: .9rem; color: #34302c;

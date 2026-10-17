@@ -44,7 +44,8 @@ You can change colors, the font, the timer's weight and style, animation speed (
 | T | Show or hide tasks |
 | I | Settings |
 | R | Report |
-| ? | List of shortcuts |
+| H | Help |
+| ? | Keyboard shortcuts |
 
 Hover over any button to see its name and shortcut.
 
