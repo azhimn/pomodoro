@@ -663,6 +663,7 @@ function renderReport() {
     const col = document.createElement('div');
     col.className = 'bar' + (d === today ? ' today' : '');
     col.tabIndex = 0;
+    col.role = 'img'; // a labelled bar; a plain div's aria-label is ignored by screen readers
     col.ariaLabel = `${full}: ${fmtDur(ms)} focus`;
     col.dataset.readout = `${full} · ${fmtDur(ms)}`;
     col.innerHTML = '<span class="track"><span class="fill"></span></span><span class="day"></span>';
