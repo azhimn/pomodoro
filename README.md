@@ -18,11 +18,11 @@ By default you focus for 25 minutes, then take a 5-minute break. Every 4th break
 
 The page and the tab icon take the color of the current step. When a step ends you hear a digital-alarm beep, pitched differently for each step. You can also get a browser notification when the tab is in the background.
 
-Under the controls you can add or take off a minute, or restart the current step. The next step waits until you press play, unless you turn on auto-start. Each new day starts again from the first focus step.
+Below the play button you can take a minute off, add one, or restart the current step. The next step waits until you press play, unless you turn on auto-start. Each new day starts again from the first focus step.
 
 ### Tasks
 
-You can keep a to-do list under the timer and hide it when you don't need it. Tasks can be edited or deleted one at a time, and the ⋯ menu clears completed, incomplete or all tasks at once. A checked-off task records the time and the step you finished it in, and it stays counted in your report even after you delete it. The list exports and imports as a Markdown checklist.
+You can keep a to-do list under the timer and hide it when you don't need it. Tasks can be edited or deleted one at a time, and the ⋯ button in the task field clears completed, incomplete or all tasks at once. A checked-off task records the time and the step you finished it in, and it stays counted in your report even after you delete it. The list exports and imports as a Markdown checklist.
 
 ### Personal report
 
@@ -30,7 +30,7 @@ The report shows your streak, focus and break time, pomodori finished and tasks 
 
 ### Settings
 
-You can change colors, the font, the timer's weight and style, animation speed, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
+You can change colors, the font, the timer's weight and style, animation speed (or turn animations off), alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
 
 ## Keyboard
 
@@ -45,6 +45,8 @@ You can change colors, the font, the timer's weight and style, animation speed, 
 | I | Settings |
 | R | Report |
 | ? | List of shortcuts |
+
+Hover over any button to see its name and shortcut.
 
 ## Run it yourself
 
