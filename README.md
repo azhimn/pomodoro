@@ -18,7 +18,7 @@ By default you focus for 25 minutes, then take a 5-minute break. Every 4th break
 
 The page and the tab icon take the color of the current step. When a step ends you hear a digital-alarm beep, pitched differently for each step. You can also get a browser notification when the tab is in the background.
 
-The next step waits until you press play, unless you turn on auto-start. Each new day starts again from the first focus step.
+Under the controls you can add or take off a minute, or restart the current step. The next step waits until you press play, unless you turn on auto-start. Each new day starts again from the first focus step.
 
 ### Tasks
 
@@ -39,6 +39,8 @@ You can change colors, the font, the timer's weight and style, animation speed, 
 | Space, K or S | Pause / continue |
 | ←, J or A | Previous step |
 | →, L or D | Next step |
+| + / − | Add or take off a minute |
+| 0 | Restart this step |
 | T | Show or hide tasks |
 | I | Settings |
 | R | Report |

@@ -30,9 +30,12 @@
   </header>
 
   <main>
-    <div id="step-name">Focus</div>
-    <div id="time" role="timer" aria-live="off">25:00</div>
-    <div id="step">Pair 1/4 · Cycle 1</div>
+    <div class="readout">
+      <div id="step-name">Focus</div>
+      <div id="time" role="timer" aria-live="off">25:00</div>
+      <div id="step">Pair 1/4 · Cycle 1</div>
+    </div>
+    <div class="deck">
     <nav class="controls">
       <button id="prev" class="icon" aria-label="Previous step">
         <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208,47.88V208.12a16,16,0,0,1-24.43,13.43L64,146.77V216a8,8,0,0,1-16,0V40a8,8,0,0,1,16,0v69.23L183.57,34.45A15.95,15.95,0,0,1,208,47.88Z"/></svg>
@@ -45,12 +48,17 @@
         <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208,40V216a8,8,0,0,1-16,0V146.77L72.43,221.55A15.95,15.95,0,0,1,48,208.12V47.88A15.95,15.95,0,0,1,72.43,34.45L192,109.23V40a8,8,0,0,1,16,0Z"/></svg>
       </button>
     </nav>
+    <div class="adjust" role="group" aria-label="Adjust this step">
+      <button id="minus-min" class="pill" aria-label="Take one minute off this step"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M228,128a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,128Z"/></svg>1 min</button>
+      <button id="reset-step" class="pill" aria-label="Restart this step"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M228,128a100,100,0,0,1-98.66,100H128a99.39,99.39,0,0,1-68.62-27.29,12,12,0,0,1,16.48-17.45,76,76,0,1,0-1.57-109c-.13.13-.25.25-.39.37L54.89,92H72a12,12,0,0,1,0,24H24a12,12,0,0,1-12-12V56a12,12,0,0,1,24,0V76.72L57.48,57.06A100,100,0,0,1,228,128Z"/></svg>Reset</button>
+      <button id="plus-min" class="pill" aria-label="Add one minute to this step"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/></svg>1 min</button>
+    </div>
+    </div>
 
     <section id="todos" aria-label="To-do list" inert>
       <div class="todos-inner">
         <div class="todo-bar">
-          <form id="todo-add" novalidate><input name="text" placeholder="Add a task" maxlength="200" aria-label="New task" autocomplete="off"><button class="icon send" aria-label="Add task"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M240,127.89a16,16,0,0,1-8.18,14L63.9,237.9A16.15,16.15,0,0,1,56,240a16,16,0,0,1-15-21.33l27-79.95A4,4,0,0,1,71.72,136H144a8,8,0,0,0,8-8.53,8.19,8.19,0,0,0-8.26-7.47h-72a4,4,0,0,1-3.79-2.72l-27-79.94A16,16,0,0,1,63.84,18.07l168,95.89A16,16,0,0,1,240,127.89Z"/></svg></button></form>
-          <button id="todo-menu-btn" class="icon" popovertarget="todo-menu" aria-label="Task options"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg></button>
+          <form id="todo-add" novalidate><input name="text" placeholder="Add a task" maxlength="200" aria-label="New task" autocomplete="off"><button type="button" id="todo-menu-btn" class="icon" popovertarget="todo-menu" aria-label="Task options"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128ZM60,112a16,16,0,1,0,16,16A16,16,0,0,0,60,112Zm136,0a16,16,0,1,0,16,16A16,16,0,0,0,196,112Z"/></svg></button><button class="icon send" aria-label="Add task"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M240,127.89a16,16,0,0,1-8.18,14L63.9,237.9A16.15,16.15,0,0,1,56,240a16,16,0,0,1-15-21.33l27-79.95A4,4,0,0,1,71.72,136H144a8,8,0,0,0,8-8.53,8.19,8.19,0,0,0-8.26-7.47h-72a4,4,0,0,1-3.79-2.72l-27-79.94A16,16,0,0,1,63.84,18.07l168,95.89A16,16,0,0,1,240,127.89Z"/></svg></button></form>
         </div>
         <div id="todo-menu" popover aria-label="Task options">
           <button type="button" data-delete="done"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete completed</span></button>
@@ -202,14 +210,7 @@
         <div class="rows" aria-labelledby="g-motion" role="group">
           <div class="row">
             <label class="row-label" for="f-anim">Animation speed</label>
-            <div class="ctrl">
-              <select id="f-anim" name="animSpeed">
-                <option value="0.001">Off</option>
-                <option value="0.5">Fast</option>
-                <option value="1">Normal</option>
-                <option value="2">Slow</option>
-              </select>
-            </div>
+            <div class="ctrl range"><input type="range" id="f-anim" name="motion" min="0" max="200" step="25"><output for="f-anim"></output></div>
           </div>
         </div>
         <p class="sub" id="g-font">Font</p>
@@ -287,6 +288,8 @@
           <div class="row"><span class="row-label">Pause / continue</span><span class="keys"><kbd>Space</kbd><kbd>K</kbd><kbd>S</kbd></span></div>
           <div class="row"><span class="row-label">Previous step</span><span class="keys"><kbd>←</kbd><kbd>J</kbd><kbd>A</kbd></span></div>
           <div class="row"><span class="row-label">Next step</span><span class="keys"><kbd>→</kbd><kbd>L</kbd><kbd>D</kbd></span></div>
+          <div class="row"><span class="row-label">Add / take off a minute</span><span class="keys"><kbd>+</kbd><kbd>−</kbd></span></div>
+          <div class="row"><span class="row-label">Restart this step</span><span class="keys"><kbd>0</kbd></span></div>
           <div class="row"><span class="row-label">Show / hide tasks (focuses the task box)</span><span class="keys"><kbd>T</kbd></span></div>
           <div class="row"><span class="row-label">Leave the task box, close a panel or menu</span><span class="keys"><kbd>Esc</kbd></span></div>
           <div class="row"><span class="row-label">Open / close settings</span><span class="keys"><kbd>I</kbd></span></div>

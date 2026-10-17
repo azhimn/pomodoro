@@ -10,7 +10,7 @@ const DEFAULTS = {
   notify: false,
   report: true,
   timer: { weight: '300', italic: false, underline: false },
-  animSpeed: '1', // duration multiplier; 'Off' is 0.001 rather than 0 so animationend still fires
+  motion: 100, // animation speed in %, 0 = off
   font: 'system-ui, sans-serif',
   fontCustom: '',
   sound: { resume: 600, pause: 500, skip: 400 },
@@ -35,6 +35,9 @@ for (const k in DEFAULTS) if (typeof DEFAULTS[k] === 'object') settings[k] = { .
 // v2 raised the click ceiling to alarm loudness; scale older saved click volumes so they sound the same as before.
 if (saved.volume && saved.ver !== 2) settings.volume.button = Math.round(settings.volume.button * 0.49 / 5) * 5;
 settings.ver = 2;
+// The speed was briefly a select storing a duration multiplier ('0.001' = off); convert it to the slider's percent.
+if (saved.animSpeed != null && saved.motion == null) settings.motion = +saved.animSpeed < 0.01 ? 0 : Math.min(200, Math.round(100 / saved.animSpeed / 25) * 25);
+delete settings.animSpeed;
 
 // endsAt set = running. left = ms remaining while paused; null = step untouched (full length).
 // runFrom = when the current running stretch began (for the report). day = local date the timer last moved.
@@ -68,6 +71,15 @@ function textOn(hex) {
 }
 
 const $ = sel => document.querySelector(sel);
+
+// Hover hints: native title = the button's label, plus its shortcut. Also exposed as aria-keyshortcuts.
+const SHORTCUTS = { 'open-settings': 'I', 'open-report': 'R', 'toggle-todos': 'T', prev: 'J', next: 'L', toggle: 'K', 'plus-min': '+', 'minus-min': '-', 'reset-step': '0' };
+function hint(btn) {
+  const key = SHORTCUTS[btn.id];
+  const title = key ? `${btn.ariaLabel} (${key})` : btn.ariaLabel;
+  if (btn.title !== title) btn.title = title;
+  if (key) btn.setAttribute('aria-keyshortcuts', key);
+}
 
 // Favicon: the current step's icon (Phosphor fill) on its background color. Rebuilt only when either changes.
 const STEP_ICONS = {
@@ -107,16 +119,21 @@ function render() {
   root.backgroundColor = bg;
   root.color = fg;
   root.fontFamily = settings.fontCustom || settings.font;
-  root.setProperty('--anim', settings.animSpeed);
+  // Durations multiply by --anim; off is a near-zero multiplier rather than 0 so animationend still fires.
+  root.setProperty('--anim', settings.motion ? 100 / settings.motion : 0.001);
   const t = $('#time').style;
   t.fontWeight = settings.timer.weight;
   t.fontStyle = settings.timer.italic ? 'italic' : 'normal';
   t.textDecorationLine = settings.timer.underline ? 'underline' : 'none';
   $('#toggle').classList.toggle('running', running);
+  $('#minus-min').disabled = remaining() <= 1000;
+  $('#reset-step').disabled = !stepTouched();
   $('#toggle').ariaLabel = running ? 'Pause' : 'Continue';
+  hint($('#toggle'));
 }
 
 function setState(patch) {
+  if ('idx' in patch) patch.extra = 0; // minutes added with +1 belong to the step they were added to
   Object.assign(state, patch);
   save('pomo.state', state);
   render();
@@ -172,7 +189,7 @@ const statDay = key => stats[key] ??= { work: 0, break: 0, pomos: 0, cycles: 0, 
 function credit(kind, ms, end, finished) {
   if (!settings.report || !(ms > 0)) return;
   const d = statDay(dayKey(end));
-  d[kind === 'work' ? 'work' : 'break'] += Math.min(ms, durMs(kind));
+  d[kind === 'work' ? 'work' : 'break'] += Math.min(ms, durMs(kind) + (state.extra || 0));
   if (finished && kind === 'work') d.pomos++;
   if (finished && kind === 'long') d.cycles++;
   save('pomo.stats', stats);
@@ -225,6 +242,29 @@ function jump(delta) {
   const idx = Math.max(0, state.idx + delta);
   setState({ idx, endsAt: state.endsAt && Date.now() + durMs(stepOf(idx).kind), left: null, runFrom: state.endsAt && Date.now() });
 }
+// ±1 min: move the end while running, or change what's left while paused. Never below 1 s, so −1 can't skip the step.
+function addMinutes(n) {
+  const delta = Math.max(n * 60000, 1000 - remaining());
+  if (!delta) return;
+  click(n > 0 ? settings.sound.resume : settings.sound.pause);
+  const extra = (state.extra || 0) + delta;
+  if (state.endsAt) setState({ endsAt: state.endsAt + delta, extra });
+  else setState({ left: remaining() + delta, extra });
+  bump();
+}
+// Restart the current step at full length, keeping it running if it was. Time already run still counts in the report.
+function resetStep() {
+  if (!stepTouched()) return;
+  click(settings.sound.skip);
+  creditRun();
+  setState({ idx: state.idx, left: null, endsAt: state.endsAt && Date.now() + durMs(stepOf(state.idx).kind), runFrom: state.endsAt && Date.now() });
+  bump();
+}
+const stepTouched = () => !!state.endsAt || state.left != null || !!state.extra;
+function bump() {
+  const t = $('#time');
+  t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); // restart the feedback animation
+}
 function finish(sound) {
   const kind = stepOf(state.idx).kind;
   if (state.runFrom) credit(kind, state.endsAt - state.runFrom, state.endsAt, true);
@@ -240,6 +280,9 @@ function finish(sound) {
 $('#toggle').addEventListener('click', toggle);
 $('#prev').addEventListener('click', () => jump(-1));
 $('#next').addEventListener('click', () => jump(1));
+$('#plus-min').addEventListener('click', () => addMinutes(1));
+$('#minus-min').addEventListener('click', () => addMinutes(-1));
+$('#reset-step').addEventListener('click', resetStep);
 addEventListener('pointerdown', stopAlarm);
 
 // Keyboard shortcuts (listed in Settings > Keyboard). Ignored while typing and with Ctrl/Alt/Cmd, so browser shortcuts still work.
@@ -264,6 +307,9 @@ addEventListener('keydown', e => {
   if (e.code === 'Space' || key === 'k' || key === 's') { e.preventDefault(); stopAlarm(); toggle(); }
   else if (e.key === 'ArrowLeft' || key === 'j' || key === 'a') jump(-1);
   else if (e.key === 'ArrowRight' || key === 'l' || key === 'd') jump(1);
+  else if (e.key === '+' || e.key === '=') addMinutes(1);
+  else if (e.key === '-' || e.key === '_') addMinutes(-1);
+  else if (e.key === '0') resetStep();
   else if (key === 't') {
     e.preventDefault(); // keep the "t" out of the input we're about to focus
     if (settings.showTodos) $('#toggle-todos').click();
@@ -279,8 +325,8 @@ const fields = () => form.querySelectorAll('[name]');
 const valueOf = el => el.type === 'checkbox' ? el.checked : el.type === 'number' || el.type === 'range' ? Number(el.value) : el.value;
 // Range readout and the filled part of its track.
 function showRange(el) {
-  el.nextElementSibling.textContent = `${el.value}%`;
-  el.style.setProperty('--fill', `${el.value}%`);
+  el.nextElementSibling.textContent = el.name === 'motion' && +el.value === 0 ? 'Off' : `${el.value}%`;
+  el.style.setProperty('--fill', `${(el.value - el.min) / (el.max - el.min) * 100}%`);
 }
 function setField(el, v) {
   const [k, f] = el.name.split('.');
@@ -338,7 +384,7 @@ function previewVolume(name) {
   alarmBus.connect(ctx.destination);
   for (let b = 0; b < 2; b++) beep(alarmBus, settings.work.hz, ctx.currentTime + b * 0.12, 0.07, 'square', 0.15 * gainFor('alarm'));
 }
-for (const r of form.querySelectorAll('input[type=range]')) {
+for (const r of form.querySelectorAll('input[type=range][name^="volume."]')) {
   r.addEventListener('pointerup', () => previewVolume(r.name));
   r.addEventListener('keyup', e => { if (/^(Arrow|Page|Home|End)/.test(e.key)) previewVolume(r.name); });
 }
@@ -431,7 +477,7 @@ function todoEl(t, animate) {
   const li = document.createElement('li');
   li.todo = t;
   if (animate) li.className = 'new';
-  li.innerHTML = `<div class="todo"><label><input type="checkbox"><span class="text"></span></label><div class="acts"><button class="icon" data-act="edit" aria-label="Edit task">${PEN_ICON}</button><button class="icon" data-act="delete" aria-label="Delete task">${X_ICON}</button></div><div class="stamp"><small></small></div></div>`;
+  li.innerHTML = `<div class="todo"><label><input type="checkbox"><span class="text"></span></label><div class="acts"><button class="icon" data-act="edit" aria-label="Edit task" title="Edit task">${PEN_ICON}</button><button class="icon" data-act="delete" aria-label="Delete task" title="Delete task">${X_ICON}</button></div><div class="stamp"><small></small></div></div>`;
   li.querySelector('input').checked = t.done != null;
   li.querySelector('.todo').classList.toggle('done', t.done != null);
   li.querySelector('.text').textContent = t.text; // textContent: imported files are untrusted
@@ -448,6 +494,7 @@ function renderTodoPanel() {
   $('#todos').inert = !settings.showTodos; // collapsed list stays out of tab order and screen readers
   $('#toggle-todos').ariaPressed = String(settings.showTodos);
   $('#toggle-todos').ariaLabel = settings.showTodos ? 'Hide to-do list' : 'Show to-do list';
+  hint($('#toggle-todos'));
 }
 const saveTodos = () => save('pomo.todos', todos);
 function addTodos(items) {
@@ -522,14 +569,15 @@ function editTodo(li) {
   });
   input.addEventListener('blur', () => close(true));
 }
-// Task options menu (popover: light-dismiss and Esc for free; positioned under its button by hand).
+// Task options menu (popover: light-dismiss and Esc for free). Right-aligned under its button, never wider than the task section.
 const menu = $('#todo-menu'), menuBtn = $('#todo-menu-btn');
 const matcher = kind => t => kind === 'all' || (kind === 'done') === (t.done != null);
 menu.addEventListener('beforetoggle', e => {
   if (e.newState !== 'open') return;
-  const r = menuBtn.getBoundingClientRect();
-  menu.style.right = `${innerWidth - r.right}px`;
+  const r = menuBtn.getBoundingClientRect(), section = $('#todos').getBoundingClientRect();
+  menu.style.right = `${document.documentElement.clientWidth - r.right}px`; // clientWidth: excludes the page scrollbar
   menu.style.top = `${r.bottom + 6}px`;
+  menu.style.width = `${Math.min(272, r.right - section.left)}px`;
   for (const b of menu.querySelectorAll('[data-delete]')) b.disabled = !todos.some(matcher(b.dataset.delete));
 });
 menu.addEventListener('toggle', e => {
@@ -725,6 +773,7 @@ if (state.endsAt && remaining() <= 0) {
 }
 dailyReset();
 syncReportUI();
+for (const b of document.querySelectorAll('button[aria-label]')) hint(b);
 render();
 renderTodos();
 renderTodoPanel();
