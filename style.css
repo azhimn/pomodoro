@@ -119,7 +119,10 @@ dialog[open]::backdrop { background: rgb(20 15 10 / .25); }
 dialog ::selection { background: #e2d9cf; }
 
 /* Head and foot stay put; the body between them scrolls. */
-dialog[open]:not(.confirm-dialog), #settings > form { display: flex; flex-direction: column; min-height: 0; }
+/* Direction lives on the base rule: only `display` is held through the close animation, so putting
+   flex-direction on [open] made the closing panel briefly lay out side by side. */
+dialog:not(.confirm-dialog), #settings > form { flex-direction: column; min-height: 0; }
+dialog[open]:not(.confirm-dialog), #settings > form { display: flex; }
 #settings > form { flex: 1; }
 .dialog-head, .dialog-foot { flex: none; display: flex; align-items: center; }
 .dialog-head { justify-content: space-between; padding: 1rem 1rem .75rem 1.5rem; }
@@ -157,8 +160,7 @@ dialog input[type=number] { width: 4.25rem; text-align: right; font-variant-nume
 .unit:has([name$=".hz"], [name^="sound."]) input { width: 5rem; }
 /* min / sec / pairs hold at most 3 digits */
 dialog input[name$=".min"], dialog input[name$=".sec"], dialog input[name="cycle"] { width: 3.6rem; }
-#f-custom, #f-preset { width: 11rem; max-width: 100%; }
-#f-weight { width: 9rem; }
+#f-custom, #f-preset, #f-weight { width: 11rem; max-width: 100%; }
 dialog input::placeholder { color: #6f665d; }
 dialog input:hover, dialog select:hover { background-color: #fdfcfa; }
 dialog input:focus, dialog select:focus { outline: none; background-color: #fff; box-shadow: 0 0 0 3px rgb(150 130 110 / .16); }
@@ -197,9 +199,9 @@ button.armed, dialog .ctrl button.armed { background: #a4503f; color: #fff8f4; }
 button.armed:hover, dialog .ctrl button.armed:hover { background: #944635; }
 
 /* Volume sliders: soft track with a filled part (--fill, set from JS) and a white knob. */
-.ctrl.range { gap: .6rem; flex-wrap: nowrap; flex: 1 1 11rem; }
+.ctrl.range { gap: .5rem; flex-wrap: nowrap; flex: 1 1 11rem; }
 .ctrl.range output { flex: none; }
-.ctrl.range output { width: 2.6rem; text-align: right; font-size: .85rem; color: #5a534c; font-variant-numeric: tabular-nums; }
+.ctrl.range output { min-width: 4ch; text-align: right; font-size: .85rem; color: #5a534c; font-variant-numeric: tabular-nums; }
 dialog input[type=range] {
   appearance: none; width: 9rem; min-width: 0; flex: 1 1 6rem; height: 1.5rem; padding: 0; cursor: pointer;
   background: transparent; --fill: 50%;
@@ -280,19 +282,25 @@ kbd {
 .confirm-actions .danger:hover { background: #944635; }
 
 /* Narrow screens: long labels and button pairs drop under their label instead of squeezing. */
+/* Narrower than the panel plus its margins: settings and report take the whole screen. */
+@media (max-width: 32rem) {
+  dialog:not(.confirm-dialog) {
+    width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border-radius: 0;
+  }
+}
+
 @media (max-width: 26rem) {
-  dialog { width: 96vw; }
   .dialog-body { padding-inline: 1rem; }
   .dialog-head { padding-left: 1rem; }
   .dialog-foot { padding-inline: 1rem; }
   .confirm-actions { flex-wrap: wrap; }
   .confirm-actions .spacer { display: none; }
   .confirm-actions button { flex: 1 1 auto; justify-content: center; }
-  .row.stack, .row:has(#f-custom), .row:has(#f-preset) { flex-direction: column; align-items: stretch; gap: .45rem; padding-block: .7rem; }
+  .row.stack, .row:has(#f-custom), .row:has(#f-preset), .row:has(#f-weight) { flex-direction: column; align-items: stretch; gap: .45rem; padding-block: .7rem; }
   /* In a column, flex-basis is a height: without this the label reserves 5rem of empty space. */
-  .row.stack > .row-label, .row:has(#f-custom) > .row-label, .row:has(#f-preset) > .row-label { flex: none; }
-  .row.stack > .ctrl, .row:has(#f-custom) > .ctrl, .row:has(#f-preset) > .ctrl { margin-left: 0; width: 100%; }
-  #f-custom, #f-preset { width: 100%; }
+  .row.stack > .row-label, .row:has(#f-custom) > .row-label, .row:has(#f-preset) > .row-label, .row:has(#f-weight) > .row-label { flex: none; }
+  .row.stack > .ctrl, .row:has(#f-custom) > .ctrl, .row:has(#f-preset) > .ctrl, .row:has(#f-weight) > .ctrl { margin-left: 0; width: 100%; }
+  #f-custom, #f-preset, #f-weight { width: 100%; }
   .row.stack .ctrl button { flex: 1; justify-content: center; }
 }
 
