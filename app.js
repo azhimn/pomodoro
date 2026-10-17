@@ -420,6 +420,7 @@ confirmable($('#settings-reset'), () => {
 let todos = load('pomo.todos', []);
 if (!Array.isArray(todos)) todos = [];
 const list = $('#todo-list');
+const PEN_ICON = '<svg viewBox="0 0 256 256" aria-hidden="true"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM192,108.68,147.31,64l24-24L216,84.68Z"/></svg>';
 const X_ICON = '<svg viewBox="0 0 256 256" aria-hidden="true"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></svg>';
 
 // Item: { text, done } where done is null (open) or the completion note, e.g. "2026-10-16 14:32 · Focus 3/4 · Cycle 2".
@@ -428,7 +429,7 @@ function todoEl(t, animate) {
   const li = document.createElement('li');
   li.todo = t;
   if (animate) li.className = 'new';
-  li.innerHTML = `<div class="todo"><label><input type="checkbox"><span class="text"></span></label><button class="icon" aria-label="Delete task">${X_ICON}</button><div class="stamp"><small></small></div></div>`;
+  li.innerHTML = `<div class="todo"><label><input type="checkbox"><span class="text"></span></label><div class="acts"><button class="icon" data-act="edit" aria-label="Edit task">${PEN_ICON}</button><button class="icon" data-act="delete" aria-label="Delete task">${X_ICON}</button></div><div class="stamp"><small></small></div></div>`;
   li.querySelector('input').checked = t.done != null;
   li.querySelector('.todo').classList.toggle('done', t.done != null);
   li.querySelector('.text').textContent = t.text; // textContent: imported files are untrusted
@@ -472,6 +473,7 @@ $('#todo-add').addEventListener('submit', e => {
   if (text) addTodos([{ text, done: null }]);
 });
 list.addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return; // the edit field also fires change
   const li = e.target.closest('li');
   // sv-SE locale formats as "YYYY-MM-DD HH:MM:SS" in local time.
   const stamp = new Date().toLocaleString('sv-SE').slice(0, 16);
@@ -483,9 +485,40 @@ list.addEventListener('change', e => {
   li.querySelector('.todo').classList.toggle('done', e.target.checked);
 });
 list.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (btn) deleteTodos(t => t === btn.closest('li').todo);
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const li = btn.closest('li');
+  if (btn.dataset.act === 'edit') editTodo(li);
+  else deleteTodos(t => t === li.todo);
 });
+// Edit in place: Enter or leaving the field saves, Esc cancels. An empty edit keeps the old text.
+function editTodo(li) {
+  const span = li.querySelector('.text');
+  if (!span.isConnected || li.querySelector('input.edit')) return;
+  const input = document.createElement('input');
+  input.className = 'edit';
+  input.maxLength = 200;
+  input.ariaLabel = 'Edit task';
+  input.value = li.todo.text;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  let closed = false;
+  const close = keep => {
+    if (closed) return;
+    closed = true;
+    const text = input.value.trim();
+    if (keep && text && text !== li.todo.text) { li.todo.text = text; saveTodos(); }
+    span.textContent = li.todo.text;
+    input.replaceWith(span);
+    li.querySelector('[data-act=edit]').focus({ preventScroll: true });
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); close(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); }
+  });
+  input.addEventListener('blur', () => close(true));
+}
 // Task options menu (popover: light-dismiss and Esc for free; positioned under its button by hand).
 const menu = $('#todo-menu'), menuBtn = $('#todo-menu-btn');
 const matcher = kind => t => kind === 'all' || (kind === 'done') === (t.done != null);

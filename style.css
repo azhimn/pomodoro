@@ -348,7 +348,8 @@ kbd {
 #todo-add input:hover { background: color-mix(in oklab, currentColor 13%, transparent); }
 #todo-add input::placeholder { color: inherit; opacity: .7; }
 #todo-add input:focus-visible { outline: none; background: color-mix(in oklab, currentColor 14%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 20%, transparent); }
-#todo-list { list-style: none; padding: 0; margin: .75rem 0; max-height: 40vh; overflow-y: auto; }
+/* overflow-x: hidden, since overflow-y: auto would otherwise make x scrollable for the delete slide-out. */
+#todo-list { list-style: none; padding: 0; margin: .75rem 0; max-height: 40vh; overflow-y: auto; overflow-x: hidden; }
 /* Each row animates its own height via grid rows (0fr <-> 1fr), so neighbours slide instead of jumping. */
 #todo-list li { display: grid; grid-template-rows: 1fr; }
 #todo-list li.new { animation: todo-in .4s var(--ease); }
@@ -357,20 +358,20 @@ kbd {
 @keyframes todo-out { to { grid-template-rows: 0fr; opacity: 0; translate: 1rem 0; } }
 .todo {
   min-height: 0; overflow: hidden;
-  display: grid; grid-template-columns: 1fr auto; align-items: center;
-  padding: .3rem 2px .3rem calc(.2rem + 2px); margin-inline: -2px; /* side room so focus rings aren't clipped */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; /* minmax: a long edit field can't push the buttons out */
+  padding: .3rem 5px .3rem calc(.2rem + 4px); /* inner room so focus rings aren't clipped */
 }
-#todo-list label { display: flex; gap: .6rem; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
-#todo-list input {
+#todo-list label { min-width: 0; display: flex; gap: .6rem; align-items: center; cursor: pointer; overflow-wrap: anywhere; }
+#todo-list input[type=checkbox] {
   appearance: none; margin: 0; flex: none; cursor: pointer; color: inherit; /* inputs don't inherit text color */
   width: 1.15rem; height: 1.15rem; border-radius: .35rem;
   background: color-mix(in oklab, currentColor 16%, transparent);
   transition: background-color .2s, scale .15s var(--ease);
 }
-#todo-list input:hover { background: color-mix(in oklab, currentColor 24%, transparent); }
-#todo-list input:active { scale: .85; }
-#todo-list input:checked { background: color-mix(in oklab, currentColor 80%, transparent); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm-34.34,77.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E") center / 128% no-repeat; }
-#todo-list input:focus-visible { outline: 2px solid color-mix(in oklab, currentColor 45%, transparent); outline-offset: 2px; }
+#todo-list input[type=checkbox]:hover { background: color-mix(in oklab, currentColor 24%, transparent); }
+#todo-list input[type=checkbox]:active { scale: .85; }
+#todo-list input[type=checkbox]:checked { background: color-mix(in oklab, currentColor 80%, transparent); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm-34.34,77.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E") center / 128% no-repeat; }
+#todo-list input[type=checkbox]:focus-visible { outline: 2px solid color-mix(in oklab, currentColor 45%, transparent); outline-offset: 2px; }
 .todo .text {
   text-decoration: line-through; text-decoration-color: transparent;
   transition: text-decoration-color .3s var(--ease), opacity .3s;
@@ -383,7 +384,14 @@ kbd {
 .todo.done .stamp { grid-template-rows: 1fr; opacity: .8; }
 .stamp small { min-height: 0; overflow: hidden; padding-left: 1.75rem; font-size: .8rem; }
 .todo.done .stamp small { padding-top: .1rem; }
-#todo-list button { grid-column: 2; grid-row: 1; padding: .4rem; opacity: .55; }
+.acts { grid-column: 2; grid-row: 1; display: flex; }
+#todo-list button { padding: .4rem; opacity: .55; }
+#todo-list .acts [data-act=edit] svg { width: .9rem; height: .9rem; }
+#todo-list input.edit {
+  flex: 1; min-width: 0; font: inherit; color: inherit; padding: .15rem .45rem; margin: -.15rem 0;
+  border: none; border-radius: .45rem; background: color-mix(in oklab, currentColor 12%, transparent);
+}
+#todo-list input.edit:focus { outline: none; box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 30%, transparent); }
 #todo-list button:hover { opacity: 1; }
 #todo-list svg { width: 1rem; height: 1rem; }
 

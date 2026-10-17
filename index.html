@@ -56,7 +56,7 @@
           <button type="button" data-delete="done"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete completed</span></button>
           <button type="button" data-delete="open"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete incomplete</span></button>
           <button type="button" data-delete="all"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM112,168a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm0-120H96V40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8Z"/></svg><span class="lbl">Delete all</span></button>
-          <p class="menu-hint">Press twice to confirm</p>
+          <p class="menu-hint">Press twice to confirm. Completed tasks stay counted in your report after you delete them.</p>
         </div>
         <ul id="todo-list"></ul>
       </div>
@@ -333,7 +333,7 @@
           <div class="row"><span class="row-label">Days with a pomodoro</span><span class="val" id="r-days"></span></div>
         </div>
       </section>
-      <p class="fineprint">Counts time the timer actually ran. Kept only in this browser.</p>
+      <p class="fineprint">Counts time the timer actually ran. Completed tasks stay counted even after you delete them from the list. Kept only in this browser.</p>
     </div>
     <form method="dialog" class="dialog-foot"><button class="close">Done</button></form>
   </dialog>
