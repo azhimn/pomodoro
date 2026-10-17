@@ -316,7 +316,11 @@ kbd {
 .todos-inner { transition: padding .45s cubic-bezier(.25, 1, .5, 1); }
 /* Input plus the options button on one line. */
 .todo-bar { display: flex; gap: .4rem; align-items: center; }
-#todo-add { flex: 1; }
+#todo-add { flex: 1; position: relative; }
+/* Send button sits inside the right end of the field. */
+#todo-add .send { position: absolute; right: .3rem; top: 50%; translate: 0 -50%; padding: .45rem; opacity: .7; }
+#todo-add .send:hover { opacity: 1; }
+#todo-add .send svg { width: 1.05rem; height: 1.05rem; }
 #todo-menu-btn svg { width: 1.25rem; height: 1.25rem; }
 
 #todo-menu {
@@ -340,7 +344,7 @@ kbd {
 .menu-hint { margin: .3rem .7rem .25rem; font-size: .75rem; color: #6b635b; }
 
 #todo-add input {
-  width: 100%; font: inherit; color: inherit; padding: .6rem .9rem;
+  width: 100%; font: inherit; color: inherit; padding: .6rem 2.8rem .6rem .9rem; /* right: room for the send button */
   background: color-mix(in oklab, currentColor 10%, transparent);
   border: none; border-radius: .9rem;
   transition: background-color .2s, box-shadow .2s;

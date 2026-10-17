@@ -470,6 +470,7 @@ $('#todo-add').addEventListener('submit', e => {
   e.preventDefault();
   const input = e.target.text, text = input.value.trim();
   input.value = '';
+  input.focus(); // after a click on send, keep typing the next task
   if (text) addTodos([{ text, done: null }]);
 });
 list.addEventListener('change', e => {

@@ -22,7 +22,7 @@ The next step waits until you press play, unless you turn on auto-start. Each ne
 
 ### Tasks
 
-You can keep a to-do list under the timer and hide it when you don't need it. A checked-off task records the time and the step you finished it in. The list exports and imports as a Markdown checklist.
+You can keep a to-do list under the timer and hide it when you don't need it. Tasks can be edited or deleted one at a time, and the ⋯ menu clears completed, incomplete or all tasks at once. A checked-off task records the time and the step you finished it in, and it stays counted in your report even after you delete it. The list exports and imports as a Markdown checklist.
 
 ### Personal report
 
@@ -30,7 +30,7 @@ The report shows your streak, focus and break time, pomodori finished and tasks 
 
 ### Settings
 
-You can change colors, the font, the timer's weight and style, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser.
+You can change colors, the font, the timer's weight and style, alarm and click pitches, and separate volumes for the alarm and clicks. Settings export to a JSON file you can load in another browser, and one button puts everything back to the defaults. On a phone, Settings and the report open full screen.
 
 ## Keyboard
 
